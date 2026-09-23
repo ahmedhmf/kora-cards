@@ -334,10 +334,10 @@ export class CardRendererService {
     ctx.drawImage(this.cardOne.header, 126, 70, 828, 175);
     ctx.drawImage(this.cardOne.upperFill, 126, 300, 828, 1445);
     ctx.drawImage(this.cardOne.frame, 126, 300, 828, 1445);
-    ctx.drawImage(this.cardOne.portrait, 145, 385, 790, 825);
 
     ctx.save();
-    this.cardOnePortraitPath(ctx);
+    ctx.beginPath();
+    ctx.rect(145, 250, 790, 940);
     ctx.clip();
     ctx.drawImage(player, 0, 0);
     ctx.restore();
@@ -423,11 +423,10 @@ export class CardRendererService {
     ctx.drawImage(this.cardTwo.background, 0, 0, w, h);
     ctx.drawImage(this.cardTwo.header, 126, 70, 828, 175);
     ctx.drawImage(this.cardTwo.frame, 126, 300, 828, 1445);
-    ctx.drawImage(this.cardTwo.portrait, 145, 385, 790, 825);
 
     ctx.save();
     ctx.beginPath();
-    ctx.rect(145, 385, 790, 825);
+    ctx.rect(145, 250, 790, 940);
     ctx.clip();
     ctx.drawImage(player, 0, 0);
     ctx.restore();
@@ -487,10 +486,10 @@ export class CardRendererService {
     this.drawAnimatedBall(ctx, animatedBallX, animatedBallY, animatedBallSize);
     ctx.drawImage(this.cardThree.header, 126, 70, 828, 175);
     ctx.drawImage(this.cardThree.frame, 126, 300, 828, 1445);
-    ctx.drawImage(this.cardThree.portrait, 145, 385, 790, 825);
 
     ctx.save();
-    this.cardOnePortraitPath(ctx);
+    ctx.beginPath();
+    ctx.rect(145, 250, 790, 940);
     ctx.clip();
     ctx.drawImage(player, 0, 0);
     ctx.restore();
@@ -595,11 +594,10 @@ export class CardRendererService {
     ctx.drawImage(this.cardFour.background, 0, 0, 1080, 1350);
     ctx.drawImage(this.cardFour.frame, 138, 170, 804, 1140);
     ctx.drawImage(this.cardFour.header, 157, 55, 766, 117);
-    ctx.drawImage(this.cardFour.portrait, 157, 250, 766, 722);
 
     ctx.save();
     ctx.beginPath();
-    ctx.rect(157, 250, 766, 722);
+    ctx.rect(157, 172, 766, 800);
     ctx.clip();
     ctx.drawImage(player, 0, 0);
     ctx.restore();
