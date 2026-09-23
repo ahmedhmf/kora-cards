@@ -125,7 +125,7 @@
 .player-fields select {
   appearance: none !important;
   -webkit-appearance: none !important;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23b9ff39' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23ed1c24' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
   background-repeat: no-repeat !important;
   background-position: right 14px center !important;
   background-size: 16px !important;
@@ -147,8 +147,8 @@
 .player-fields input:focus,
 .player-fields select:focus-visible {
   outline: none !important;
-  border-color: #b9ff39 !important;
-  box-shadow: 0 0 12px rgba(185, 255, 57, 0.4) !important;
+  border-color: #ed1c24 !important;
+  box-shadow: 0 0 12px rgba(237, 28, 36, 0.4) !important;
 }
 
 @media (max-height: 700px) {
