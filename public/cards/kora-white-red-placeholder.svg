@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1061" height="1483" viewBox="0 0 1061 1483">
+  <defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#fff"/><stop offset=".65" stop-color="#e4e7e9"/><stop offset="1" stop-color="#b8bdc1"/></linearGradient><pattern id="lines" width="48" height="48" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><path d="M0 0V48" stroke="#171717" stroke-opacity=".06" stroke-width="8"/></pattern></defs>
+  <path d="M531 35 916 112l86 158v930l-131 190-340 62-340-62-131-190V270l86-158z" fill="url(#bg)" stroke="#171717" stroke-width="30"/>
+  <path d="M531 68 895 139l72 143v898l-113 176-323 58-323-58-113-176V282l72-143z" fill="url(#lines)" stroke="#ef2029" stroke-width="10"/>
+  <path d="m80 1060 901-500v210L80 1270z" fill="#ef2029" fill-opacity=".88"/>
+  <text x="531" y="745" fill="#171717" fill-opacity=".24" font-family="Arial" font-size="74" font-weight="900" text-anchor="middle">DESIGN 03</text>
+  <text x="531" y="815" fill="#171717" fill-opacity=".18" font-family="Arial" font-size="28" font-weight="700" text-anchor="middle">REPLACE THIS TEMPLATE LATER</text>
+</svg>

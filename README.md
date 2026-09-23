@@ -1,59 +1,55 @@
-# KoraCards
+# Kora Card PWA
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.0.1.
+Angular progressive web app that records a two-second goal celebration after a ten-second countdown and turns a still frame into a shareable Kora card.
 
-## Development server
+The interface is inspired by the KORA product catalogue: editorial white space, technical black rails, pale-grey panel geometry, red accents, and the official KORA ball as the lead product visual.
 
-To start a local development server, run:
+The visual system uses a high-contrast KORA neumorphic treatment: raised selection and export controls, inset fields, recessed camera surfaces, tactile pressed states, and accessible black/red accents on a sculpted light-grey base.
 
-```bash
-ng serve
-```
+The official wordmark lives at `public/brand/kora-logo.png` and is reused by the header, catalogue rail, generated photo-filter frame, player-card output, favicon, and install icon.
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+The opening studio now offers two reusable experiences: the original player-card creator and a photo-filter flow. The first filter previews the complete effect live in the camera, replaces the background with a wall of the catalogue football products, places frameless animated KORA ball lenses using face landmarks, captures exactly what the user sees, and supports native sharing or PNG download. Uploaded photos use the same processing pipeline.
 
-## Code scaffolding
+Both experiences can export either a PNG image or a four-second canvas-recorded video. The player-card video preserves the celebration loop, while the photo-filter video preserves the rotating ball lenses. The exporter prefers MP4 where the browser supports it and otherwise uses WebM.
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+The result screen uses MediaPipe person segmentation to remove the camera background, loops the recorded celebration inside a blue-and-gold player card, and exports the current frame as a transparent PNG. The first background-removal run downloads the official MediaPipe selfie-segmentation model, so an internet connection is required once.
 
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+## Run locally
 
 ```bash
-ng generate --help
+npm install
+npm start
 ```
 
-## Building
+Camera access requires HTTPS or localhost. On iPhone, use Safari and add the site to the Home Screen for the most app-like experience.
 
-To build the project run:
+## Architecture
 
-```bash
-ng build
-```
+- `app/card-shell.component.ts` is presentation-only and exposes the Signal Store to the template.
+- `app/state/card.store.ts` owns UI state and workflow actions using `@ngrx/signals`.
+- `app/core/camera.service.ts` owns camera access and video recording.
+- `app/core/card-renderer.service.ts` owns MediaPipe segmentation and canvas composition.
+- `app/core/card-export.service.ts` owns sharing and PNG downloads.
+- `app/core/photo-filter.service.ts` owns reusable person segmentation, face-landmark tracking, product-wall composition, glasses placement, and KORA frame rendering.
+- `public/brand/kora-ball-lens.gif` is the source animation for both glasses lenses. For reliable canvas and video export across mobile browsers, its 49 frames are prebuilt into `public/brand/kora-ball-lens-sprite.png`; the renderer advances the sprite frames while tracking the face position and angle.
+- `app/core/inactivity.service.ts` monitors user activity and returns unfinished flows home after 30 seconds.
+- `app/shared/media-stream.directive.ts` attaches a stream to a video element without camera logic in the component.
+- `app/data/fc27-players.data.ts` contains the position-indexed FC 27 comparison pools and card attributes.
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+Selecting a position chooses a random player from that position's ten-player pool. The result displays “You remind us of …” and renders that player's overall and six attributes on the generated card. Ratings are a curated FC 27 launch snapshot and can be updated independently in the data file.
 
-## Running unit tests
+The persistent **Start over** control and the inactivity timeout both dispatch the same Signal Store reset action, which cancels pending countdown work and cleans up camera, renderer, and object-URL resources.
 
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+If an older service worker was previously installed, open browser DevTools → Application → Service Workers, unregister it, clear site data, and reload.
 
-```bash
-ng test
-```
+## Google Drive video uploads
 
-## Running end-to-end tests
+The result screens can save generated player-card and photo-filter videos directly to a `KORA Event Uploads` folder in the usher's Google Drive. No application backend is required.
 
-For end-to-end (e2e) testing, run:
+1. In Google Cloud Console, create or select a project and enable **Google Drive API**.
+2. Configure the OAuth consent screen. While the app is in testing, add every usher's Google account as a test user.
+3. Create an **OAuth 2.0 Client ID** with application type **Web application**.
+4. Add `http://localhost:4200` and the production app origin to **Authorized JavaScript origins**.
+5. Paste the client ID into `src/environments/google-drive.config.ts`.
 
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+The app requests only `https://www.googleapis.com/auth/drive.file`, so it can create and manage its own uploads without reading unrelated Drive content. Never add a client secret, service-account key or Google password to this PWA.
