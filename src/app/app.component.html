@@ -51,6 +51,17 @@
       <button type="button" [class.selected]="store.cardDesign()==='white-red'" (click)="store.setCardDesign('white-red')"><span class="design-preview design-three"><b>03</b></span><strong>BALL / WHITE</strong><small>Product edition</small></button>
       <button type="button" [class.selected]="store.cardDesign()==='mono-red'" (click)="store.setCardDesign('mono-red')"><span class="design-preview design-four"><b>04</b></span><strong>MONO / RED</strong><small>4:5 edition</small></button>
     </fieldset>
+    <fieldset class="camera-picker">
+      <legend>SELECT CAMERA</legend>
+      <div class="camera-toggle-group">
+        <button type="button" [class.selected]="store.facingMode()==='environment'" (click)="store.setFacingMode('environment')">
+          📷 <span>BACK CAMERA</span>
+        </button>
+        <button type="button" [class.selected]="store.facingMode()==='user'" (click)="store.setFacingMode('user')">
+          🤳 <span>FRONT CAMERA</span>
+        </button>
+      </div>
+    </fieldset>
     <button class="primary" (click)="store.openCamera()"><span class="camera-icon">●</span> OPEN CAMERA <b>→</b></button>
     <p class="privacy">Your recording stays on this device.</p>
     <div class="error" *ngIf="store.error()">{{store.error()}}</div>
@@ -59,7 +70,10 @@
   <section class="capture" *ngIf="store.experience()==='card'&&(store.stage()==='camera'||store.stage()==='countdown'||store.stage()==='recording')">
     <div class="section-label"><span>02</span><b>CAPTURE / CELEBRATION</b></div>
     <div class="viewfinder">
-      <video #camera autoplay muted playsinline [appMediaStream]="store.mediaStream()"></video>
+      <video #camera autoplay muted playsinline [appMediaStream]="store.mediaStream()" [class.mirrored]="store.facingMode()==='user'"></video>
+      <button class="flip-camera-btn" type="button" (click)="store.toggleFacingMode()" aria-label="Switch Camera">
+        🔄 <span>{{store.facingMode()==='environment'?'BACK CAMERA':'FRONT CAMERA'}}</span>
+      </button>
       <div class="corners"></div>
       <div class="count" *ngIf="store.stage()==='countdown'"><strong>{{store.countdown()}}</strong><span>GET READY</span></div>
       <div class="recording" *ngIf="store.stage()==='recording'"><i></i> CELEBRATE!</div>
@@ -89,6 +103,17 @@
     <div class="eyebrow"><i></i> KORA FRAME / 01</div>
     <h2>Choose a photo.</h2>
     <p>Take a new photo or use one already on your device. We’ll place you in front of the KORA product wall and add ball-lens glasses.</p>
+    <fieldset class="camera-picker">
+      <legend>SELECT CAMERA</legend>
+      <div class="camera-toggle-group">
+        <button type="button" [class.selected]="store.facingMode()==='environment'" (click)="store.setFacingMode('environment')">
+          📷 <span>BACK CAMERA</span>
+        </button>
+        <button type="button" [class.selected]="store.facingMode()==='user'" (click)="store.setFacingMode('user')">
+          🤳 <span>FRONT CAMERA</span>
+        </button>
+      </div>
+    </fieldset>
     <button class="primary" type="button" (click)="store.openFilterCamera()"><span class="camera-icon">●</span> TAKE A PHOTO <b>→</b></button>
     <label class="upload-button">UPLOAD A PHOTO<input type="file" accept="image/*" (change)="store.selectFilterFile($event)"></label>
     <p class="privacy">Your photo stays on this device.</p>
@@ -97,7 +122,15 @@
 
   <section class="filter-camera" *ngIf="store.experience()==='filter'&&store.filterStage()==='camera'">
     <div class="section-label"><span>02</span><b>PHOTO FILTER / CAMERA</b></div>
-    <div class="viewfinder filter-viewfinder"><video #filterCamera class="live-filter-source" autoplay muted playsinline [appMediaStream]="store.mediaStream()" (loadeddata)="store.startLiveFilter(filterCamera,liveFilterCanvas)"></video><canvas #liveFilterCanvas class="live-filter-canvas" width="1080" height="1350" aria-label="Live KORA product-wall filter preview"></canvas><div class="corners"></div><div class="filter-loader live-loader" *ngIf="store.cardLoading()"><span></span><b>STARTING LIVE EFFECT</b><small>Finding you and fitting the ball lenses…</small></div></div>
+    <div class="viewfinder filter-viewfinder">
+      <video #filterCamera class="live-filter-source" [class.mirrored]="store.facingMode()==='user'" autoplay muted playsinline [appMediaStream]="store.mediaStream()" (loadeddata)="store.startLiveFilter(filterCamera,liveFilterCanvas)"></video>
+      <button class="flip-camera-btn" type="button" (click)="store.toggleFacingMode()" aria-label="Switch Camera">
+        🔄 <span>{{store.facingMode()==='environment'?'BACK CAMERA':'FRONT CAMERA'}}</span>
+      </button>
+      <canvas #liveFilterCanvas class="live-filter-canvas" width="1080" height="1350" aria-label="Live KORA product-wall filter preview"></canvas>
+      <div class="corners"></div>
+      <div class="filter-loader live-loader" *ngIf="store.cardLoading()"><span></span><b>STARTING LIVE EFFECT</b><small>Finding you and fitting the ball lenses…</small></div>
+    </div>
     <button class="primary shutter" type="button" (click)="store.captureFilterPhoto()" [disabled]="store.cardLoading()"><span></span> CAPTURE PHOTO</button>
     <div class="error" *ngIf="store.error()">{{store.error()}}</div>
   </section>

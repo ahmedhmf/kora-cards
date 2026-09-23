@@ -193,9 +193,9 @@ input:focus, .player-fields select:focus-visible { border-color: var(--kora-red)
 .filter-hero b { position: absolute; left: 27px; bottom: 25px; font: 950 2.1rem/.85 Chakra Petch; letter-spacing: -.04em; }
 .upload-button { display: grid; place-items: center; width: 100%; margin-top: 16px; padding: 17px 20px; border: 1px solid var(--kora-black); color: var(--kora-black) !important; font-size: .84rem; cursor: pointer; }
 .upload-button input { position: absolute; width: 1px; height: 1px; padding: 0; opacity: 0; overflow: hidden; }
-.filter-viewfinder { height: min(68svh,680px) !important; }
+.filter-viewfinder { aspect-ratio: 3/4 !important; height: auto !important; max-height: 65svh !important; }
 .filter-viewfinder .live-filter-source { position: absolute; width: 2px; height: 2px; opacity: .01; pointer-events: none; }
-.live-filter-canvas { display: block; width: 100%; height: 100%; object-fit: cover; }
+.live-filter-canvas { display: block; width: 100%; height: 100%; object-fit: contain; }
 .live-loader { z-index: 4; }
 .shutter { margin-top: 18px; }
 .shutter span { width: 19px; height: 19px; border: 4px solid #fff; border-radius: 50%; box-shadow: 0 0 0 2px var(--kora-red); }

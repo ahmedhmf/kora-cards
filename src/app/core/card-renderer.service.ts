@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { FilesetResolver, ImageSegmenter } from '@mediapipe/tasks-vision';
 import { RatedPlayer } from '../data/fc27-players.data';
 import type { CardDesign } from '../state/card.store';
+import type { FacingMode } from './camera.service';
 
 export interface CardData {
   name: string;
@@ -9,6 +10,7 @@ export interface CardData {
   number: number;
   design: CardDesign;
   match: RatedPlayer;
+  facingMode?: FacingMode;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -82,6 +84,7 @@ export class CardRendererService {
               canvas.width,
               canvas.height,
               data.design,
+              data.facingMode === 'user',
             );
             latestPlayer = player;
             masks.forEach((item) => item.close());
@@ -118,7 +121,7 @@ export class CardRendererService {
       canvas.width,
       canvas.height,
       getData().design,
-      false,
+      getData().facingMode === 'user',
     );
     masks.forEach((item) => item.close());
     const render = () => {

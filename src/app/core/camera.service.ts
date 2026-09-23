@@ -1,14 +1,23 @@
 import {Injectable} from '@angular/core';
+
+export type FacingMode = 'user' | 'environment';
+
 @Injectable({providedIn:'root'})
 export class CameraService{
  private stream?:MediaStream;
- async open(){this.stop();this.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1080},height:{ideal:1920}},audio:false});return this.stream;}
+ async open(facingMode: FacingMode = 'environment'){
+  this.stop();
+  this.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:facingMode},width:{ideal:1920},height:{ideal:1080}},audio:false});
+  return this.stream;
+ }
  attach(video:HTMLVideoElement){if(this.stream)video.srcObject=this.stream;}
- capture(video:HTMLVideoElement){
+ capture(video:HTMLVideoElement, facingMode: FacingMode = 'environment'){
   if(!this.stream||video.readyState<2)throw new Error('Camera is not ready');
   const canvas=document.createElement('canvas'),portrait=video.videoHeight>=video.videoWidth;
   canvas.width=portrait?video.videoWidth:video.videoHeight;canvas.height=portrait?video.videoHeight:video.videoWidth;
-  const ctx=canvas.getContext('2d')!;ctx.translate(canvas.width,0);ctx.scale(-1,1);ctx.drawImage(video,0,0,canvas.width,canvas.height);
+  const ctx=canvas.getContext('2d')!;
+  if(facingMode==='user'){ctx.translate(canvas.width,0);ctx.scale(-1,1);}
+  ctx.drawImage(video,0,0,canvas.width,canvas.height);
   return new Promise<Blob>((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('Photo capture failed')),'image/jpeg',.94));
  }
  captureCanvas(canvas:HTMLCanvasElement){return new Promise<Blob>((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('Photo capture failed')),'image/png'));}
