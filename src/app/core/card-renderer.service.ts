@@ -56,7 +56,94 @@ export class CardRendererService {
     portrait: new Image(),
     icons: new Image(),
   };
+  private cardOneFrameTransparent?: HTMLCanvasElement;
+  private cardTwoFrameTransparent?: HTMLCanvasElement;
+  private cardThreeFrameTransparent?: HTMLCanvasElement;
+  private cardFourFrameTransparent?: HTMLCanvasElement;
   private assetsLoaded = false;
+
+  private makeTransparentTemplate(image: HTMLImageElement): HTMLCanvasElement {
+    const canvas = document.createElement('canvas');
+    const w = image.naturalWidth || image.width || 828;
+    const h = image.naturalHeight || image.height || 1445;
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+    ctx.drawImage(image, 0, 0);
+    const imgData = ctx.getImageData(0, 0, w, h);
+    const data = imgData.data;
+
+    const cx = Math.floor(w / 2);
+    const cy = Math.floor(h / 2);
+    const startIdx = (cy * w + cx) * 4;
+    const targetR = data[startIdx];
+    const targetG = data[startIdx + 1];
+    const targetB = data[startIdx + 2];
+    const targetA = data[startIdx + 3];
+
+    if (targetA > 0) {
+      const visited = new Uint8Array(w * h);
+      const queue = new Int32Array(w * h);
+      let head = 0;
+      let tail = 0;
+
+      const startPos = cy * w + cx;
+      queue[tail++] = startPos;
+      visited[startPos] = 1;
+
+      while (head < tail) {
+        const pos = queue[head++];
+        const px = pos % w;
+        const py = Math.floor(pos / w);
+        const idx = pos * 4;
+
+        data[idx + 3] = 0;
+
+        const n1 = px > 0 ? pos - 1 : -1;
+        const n2 = px < w - 1 ? pos + 1 : -1;
+        const n3 = py > 0 ? pos - w : -1;
+        const n4 = py < h - 1 ? pos + w : -1;
+
+        for (const nPos of [n1, n2, n3, n4]) {
+          if (nPos >= 0 && !visited[nPos]) {
+            visited[nPos] = 1;
+            const nIdx = nPos * 4;
+            const r = data[nIdx];
+            const g = data[nIdx + 1];
+            const b = data[nIdx + 2];
+            const a = data[nIdx + 3];
+            const diff = Math.abs(r - targetR) + Math.abs(g - targetG) + Math.abs(b - targetB);
+            if (a > 0 && diff < 50) {
+              queue[tail++] = nPos;
+            }
+          }
+        }
+      }
+    }
+
+    const minX = Math.floor(w * 0.06);
+    const maxX = Math.floor(w * 0.94);
+    const minY = Math.floor(h * 0.06);
+    const maxY = Math.floor(h * 0.94);
+
+    for (let y = minY; y <= maxY; y++) {
+      for (let x = minX; x <= maxX; x++) {
+        const i = (y * w + x) * 4;
+        if (data[i + 3] === 0) continue;
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        const spread = Math.max(r, g, b) - Math.min(r, g, b);
+        const light = (r + g + b) / 3;
+        if ((spread < 20 && light > 150) || (spread < 20 && light < 25)) {
+          data[i + 3] = 0;
+        }
+      }
+    }
+
+    ctx.putImageData(imgData, 0, 0);
+    return canvas;
+  }
 
   async start(video: HTMLVideoElement, canvas: HTMLCanvasElement, getData: () => CardData) {
     this.stop();
@@ -225,6 +312,10 @@ export class CardRendererService {
       load(this.cardFour.portrait, './cards/card-4/pic-frame.svg'),
       load(this.cardFour.icons, './cards/card-4/icons.svg'),
     ]).then(() => {
+      this.cardOneFrameTransparent = this.makeTransparentTemplate(this.cardOne.frame);
+      this.cardTwoFrameTransparent = this.makeTransparentTemplate(this.cardTwo.frame);
+      this.cardThreeFrameTransparent = this.makeTransparentTemplate(this.cardThree.frame);
+      this.cardFourFrameTransparent = this.makeTransparentTemplate(this.cardFour.frame);
       this.assetsLoaded = true;
     });
   }
@@ -331,16 +422,15 @@ export class CardRendererService {
     ctx.drawImage(this.cardOne.background, 0, 0, w, h);
     ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
     ctx.fillRect(0, 0, w, h);
-    ctx.drawImage(this.cardOne.header, 126, 70, 828, 175);
-    ctx.drawImage(this.cardOne.upperFill, 126, 300, 828, 1445);
-    ctx.drawImage(this.cardOne.frame, 126, 300, 828, 1445);
 
     ctx.save();
-    ctx.beginPath();
-    ctx.rect(145, 250, 790, 940);
+    this.cardOnePortraitPath(ctx);
     ctx.clip();
     ctx.drawImage(player, 0, 0);
     ctx.restore();
+
+    ctx.drawImage(this.cardOne.header, 126, 70, 828, 175);
+    ctx.drawImage(this.cardOne.frame, 126, 300, 828, 1445);
 
     ctx.save();
     ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
@@ -421,16 +511,16 @@ export class CardRendererService {
     const w = 1080;
     const h = 1920;
     ctx.drawImage(this.cardTwo.background, 0, 0, w, h);
-    ctx.drawImage(this.cardTwo.header, 126, 70, 828, 175);
-    ctx.drawImage(this.cardTwo.frame, 126, 300, 828, 1445);
 
     ctx.save();
     ctx.beginPath();
-    ctx.rect(145, 250, 790, 940);
+    ctx.rect(145, 345, 790, 865);
     ctx.clip();
     ctx.drawImage(player, 0, 0);
     ctx.restore();
 
+    ctx.drawImage(this.cardTwo.header, 126, 70, 828, 175);
+    ctx.drawImage(this.cardTwo.frame, 126, 300, 828, 1445);
     ctx.drawImage(this.cardTwo.icons, 171, 325, 738, 90);
     this.rating(ctx, data.match.overall, data.position, 184, 650, '#090909');
     ctx.fillStyle = '#090909';
@@ -484,15 +574,15 @@ export class CardRendererService {
     const animatedBallX = (w - animatedBallSize) / 2;
     const animatedBallY = h - animatedBallSize;
     this.drawAnimatedBall(ctx, animatedBallX, animatedBallY, animatedBallSize);
-    ctx.drawImage(this.cardThree.header, 126, 70, 828, 175);
-    ctx.drawImage(this.cardThree.frame, 126, 300, 828, 1445);
 
     ctx.save();
-    ctx.beginPath();
-    ctx.rect(145, 250, 790, 940);
+    this.cardOnePortraitPath(ctx);
     ctx.clip();
     ctx.drawImage(player, 0, 0);
     ctx.restore();
+
+    ctx.drawImage(this.cardThree.header, 126, 70, 828, 175);
+    ctx.drawImage(this.cardThree.frame, 126, 300, 828, 1445);
 
     const footballX = 115;
     const footballY = 315;
@@ -592,15 +682,17 @@ export class CardRendererService {
     data: CardData,
   ) {
     ctx.drawImage(this.cardFour.background, 0, 0, 1080, 1350);
-    ctx.drawImage(this.cardFour.frame, 138, 170, 804, 1140);
-    ctx.drawImage(this.cardFour.header, 157, 55, 766, 117);
 
     ctx.save();
     ctx.beginPath();
-    ctx.rect(157, 172, 766, 800);
+    ctx.rect(157, 250, 766, 740);
     ctx.clip();
     ctx.drawImage(player, 0, 0);
     ctx.restore();
+
+    ctx.drawImage(this.cardFour.frame, 138, 170, 804, 1140);
+    ctx.drawImage(this.cardFour.header, 157, 55, 766, 117);
+    ctx.drawImage(this.cardFour.icons, 147, 185, 786, 72);
 
     ctx.drawImage(this.cardFour.icons, 147, 185, 786, 72);
     this.rating(ctx, data.match.overall, data.position, 190, 510, '#090909');
