@@ -7,7 +7,7 @@ export class CameraService{
  private stream?:MediaStream;
  async open(facingMode: FacingMode = 'environment'){
   this.stop();
-  this.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:facingMode},width:{ideal:1080},height:{ideal:1920}},audio:false});
+  this.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:facingMode},aspectRatio:{ideal:9/16},width:{ideal:1080},height:{ideal:1920}},audio:false});
   return this.stream;
  }
  attach(video:HTMLVideoElement){if(this.stream)video.srcObject=this.stream;}
