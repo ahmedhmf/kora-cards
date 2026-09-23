@@ -14,7 +14,6 @@
 
   <section class="intro" *ngIf="store.experience()==='card'&&store.stage()==='intro'">
     <div class="eyebrow"><i></i> YOUR MOMENT. YOUR CARD.</div>
-    <h1>CREATE<br><em>YOUR CARD</em></h1>
     <p class="intro-copy">Give us your best goal celebration. In 3 seconds, the camera records a two-second clip and turns it into your own Kora card.</p>
     <div class="player-fields">
       <label>PLAYER NAME<input [ngModel]="store.playerName()" (ngModelChange)="store.setName($event)" maxlength="18" placeholder="e.g. Cristiano"></label>
@@ -55,7 +54,12 @@
       </div>
 
       <div class="iphone-shutter-bar" *ngIf="store.stage()==='camera'">
-        <div class="shutter-bar-spacer"></div>
+        <button class="iphone-flip-button" type="button" (click)="store.resetToHome()" [disabled]="store.cardLoading()" aria-label="Go Home" title="Go Home">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+        </button>
 
         <button class="iphone-shutter-button" type="button" (click)="store.startSequence()" [disabled]="store.cardLoading()" aria-label="Record Video">
           <span class="shutter-outer-ring">
