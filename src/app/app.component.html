@@ -1,6 +1,6 @@
 <main class="app-shell">
   <div class="catalogue-rail" aria-hidden="true"><span></span><img src="brand/kora-logo.png" alt=""><b>FOOTBALL CULTURE</b></div>
-  <header><button class="brand brand-button" type="button" (click)="store.resetToHome()" aria-label="Return to Kora home"><img class="brand-logo" src="brand/kora-logo.png" alt="Kora"></button><button *ngIf="store.experience()!=='home'" class="start-over" type="button" (click)="store.resetToHome()">START OVER</button><span *ngIf="store.experience()==='home'" class="step">CREATIVE STUDIO</span></header>
+  <header *ngIf="store.stage() !== 'camera' && store.stage() !== 'countdown' && store.stage() !== 'recording'"><button class="brand brand-button" type="button" (click)="store.resetToHome()" aria-label="Return to Kora home"><img class="brand-logo" src="brand/kora-logo.png" alt="Kora"></button><button *ngIf="store.experience()!=='home'" class="start-over" type="button" (click)="store.resetToHome()">START OVER</button><span *ngIf="store.experience()==='home'" class="step">CREATIVE STUDIO</span></header>
 
   <section class="studio-home" *ngIf="store.experience()==='home'">
     <div class="studio-ball" aria-hidden="true"><img src="brand/kora-ball.png" alt=""><span>01 / 02</span></div>
@@ -68,25 +68,22 @@
   </section>
 
   <section class="capture" *ngIf="store.experience()==='card'&&(store.stage()==='camera'||store.stage()==='countdown'||store.stage()==='recording')">
-    <div class="section-label"><span>02</span><b>CAPTURE / CELEBRATION</b></div>
-    <div class="viewfinder">
-      <video #camera autoplay muted playsinline [appMediaStream]="store.mediaStream()" [class.mirrored]="store.facingMode()==='user'"></video>
-      <div class="viewfinder-card-overlay">
-        <img class="vf-card-frame" src="cards/card-1/card-frame.svg" alt="" aria-hidden="true">
-        <img class="vf-card-header" src="cards/card-1/header.svg" alt="" aria-hidden="true">
-        <img class="vf-card-namebar" src="cards/card-1/name-number.svg" alt="" aria-hidden="true">
-        <span class="vf-card-name">{{(store.playerName() || 'KORA STAR').toUpperCase()}}</span>
-        <span class="vf-card-number">{{store.playerNumber()}}</span>
+    <div class="live-card-stage">
+      <div class="live-card-frame">
+        <video #camera autoplay muted playsinline [appMediaStream]="store.mediaStream()" [class.mirrored]="store.facingMode()==='user'" (loadeddata)="store.startLivePreview(camera, liveCameraCanvas)" class="processing-video"></video>
+        <canvas #liveCameraCanvas class="live-card-canvas" width="1080" height="1920" aria-label="Live Card Preview"></canvas>
+        <div class="count" *ngIf="store.stage()==='countdown'"><strong>{{store.countdown()}}</strong><span>GET READY</span></div>
+        <div class="recording" *ngIf="store.stage()==='recording'"><i></i> CELEBRATE!</div>
       </div>
-      <button class="flip-camera-btn" type="button" (click)="store.toggleFacingMode()" aria-label="Switch Camera">
-        🔄 <span>{{store.facingMode()==='environment'?'BACK CAMERA':'FRONT CAMERA'}}</span>
-      </button>
-      <div class="corners"></div>
-      <div class="count" *ngIf="store.stage()==='countdown'"><strong>{{store.countdown()}}</strong><span>GET READY</span></div>
-      <div class="recording" *ngIf="store.stage()==='recording'"><i></i> CELEBRATE!</div>
+
+      <div class="iphone-shutter-bar" *ngIf="store.stage()==='camera'">
+        <button class="iphone-shutter-button" type="button" (click)="store.startSequence()" [disabled]="store.cardLoading()" aria-label="Record Video">
+          <span class="shutter-outer-ring">
+            <span class="shutter-inner-circle"></span>
+          </span>
+        </button>
+      </div>
     </div>
-    <div class="camera-copy" *ngIf="store.stage()==='camera'"><h2>Ready for kickoff?</h2><p>Choose a quick photo or record your celebration.</p><div class="capture-actions"><button class="primary" type="button" (click)="store.captureCardPhoto(camera)" [disabled]="store.cardLoading()"><span class="camera-icon">●</span> TAKE PHOTO NOW</button><button class="secondary" type="button" (click)="store.startSequence()" [disabled]="store.cardLoading()">RECORD VIDEO — 3 SEC TIMER</button></div></div>
-    <p class="camera-copy" *ngIf="store.stage()==='countdown'">Find your mark. Your camera starts automatically.</p>
   </section>
 
   <section class="result" *ngIf="store.experience()==='card'&&store.stage()==='result'">

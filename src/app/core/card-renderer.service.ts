@@ -218,6 +218,70 @@ export class CardRendererService {
     render();
   }
 
+  async startLivePreview(
+    video: HTMLVideoElement,
+    canvas: HTMLCanvasElement,
+    getData: () => CardData,
+  ) {
+    this.stop();
+    await Promise.all([this.loadAssets(), this.loadCanvasFonts()]);
+    canvas.width = 1080;
+    canvas.height = getData().design === 'mono-red' ? 1350 : 1920;
+    if (video.readyState < 2) {
+      await new Promise<void>((resolve) => (video.onloadeddata = () => resolve()));
+    }
+    try { await video.play(); } catch {}
+
+    const liveVideoCanvas = document.createElement('canvas');
+    liveVideoCanvas.width = canvas.width;
+    liveVideoCanvas.height = canvas.height;
+    const vCtx = liveVideoCanvas.getContext('2d')!;
+
+    const render = () => {
+      if (video.readyState >= 2) {
+        vCtx.clearRect(0, 0, liveVideoCanvas.width, liveVideoCanvas.height);
+        const data = getData();
+        const compact = data.design === 'mono-red';
+        const x = compact ? 157 : 145;
+        const y = compact ? 250 : 345;
+        const playerWidth = compact ? 766 : 790;
+        const playerHeight = compact ? 740 : 870;
+
+        const sw = video.videoWidth || 1080;
+        const sh = video.videoHeight || 1920;
+        const targetRatio = playerWidth / playerHeight;
+        const sourceRatio = sw / sh;
+
+        let sWidth = sw;
+        let sHeight = sh;
+        let sx = 0;
+        let sy = 0;
+
+        if (sourceRatio > targetRatio) {
+          sWidth = sh * targetRatio;
+          sx = (sw - sWidth) / 2;
+        } else {
+          sHeight = sw / targetRatio;
+          sy = (sh - sHeight) / 2;
+        }
+
+        if (data.facingMode === 'user') {
+          const mirroredX = liveVideoCanvas.width - x - playerWidth;
+          vCtx.save();
+          vCtx.translate(liveVideoCanvas.width, 0);
+          vCtx.scale(-1, 1);
+          vCtx.drawImage(video, sx, sy, sWidth, sHeight, mirroredX, y, playerWidth, playerHeight);
+          vCtx.restore();
+        } else {
+          vCtx.drawImage(video, sx, sy, sWidth, sHeight, x, y, playerWidth, playerHeight);
+        }
+        this.compose(canvas, liveVideoCanvas, data);
+      }
+      this.frameId = requestAnimationFrame(render);
+    };
+    render();
+  }
+
   stop() {
     if (this.frameId) cancelAnimationFrame(this.frameId);
     this.frameId = undefined;
