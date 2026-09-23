@@ -260,9 +260,9 @@ export class CardRendererService {
     const ctx = output.getContext('2d')!;
     const compact = design === 'mono-red';
     const x = compact ? 157 : 145;
-    const y = compact ? 250 : 385;
+    const y = compact ? 250 : 345;
     const playerWidth = compact ? 766 : 790;
-    const playerHeight = compact ? 740 : 840;
+    const playerHeight = compact ? 740 : 870;
 
     const sw = (source as HTMLVideoElement).videoWidth || (source as HTMLImageElement).naturalWidth || (source as HTMLCanvasElement).width || mw;
     const sh = (source as HTMLVideoElement).videoHeight || (source as HTMLImageElement).naturalHeight || (source as HTMLCanvasElement).height || mh;
@@ -288,11 +288,13 @@ export class CardRendererService {
       ctx.save();
       ctx.translate(w, 0);
       ctx.scale(-1, 1);
+      ctx.drawImage(source, sx, sy, sWidth, sHeight, mirroredX, y, playerWidth, playerHeight);
       ctx.drawImage(mask, sx, sy, sWidth, sHeight, mirroredX, y, playerWidth, playerHeight);
       ctx.globalCompositeOperation = 'source-in';
       ctx.drawImage(source, sx, sy, sWidth, sHeight, mirroredX, y, playerWidth, playerHeight);
       ctx.restore();
     } else {
+      ctx.drawImage(source, sx, sy, sWidth, sHeight, x, y, playerWidth, playerHeight);
       ctx.drawImage(mask, sx, sy, sWidth, sHeight, x, y, playerWidth, playerHeight);
       ctx.globalCompositeOperation = 'source-in';
       ctx.drawImage(source, sx, sy, sWidth, sHeight, x, y, playerWidth, playerHeight);
