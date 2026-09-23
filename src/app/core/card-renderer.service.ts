@@ -267,33 +267,37 @@ export class CardRendererService {
     const sw = (source as HTMLVideoElement).videoWidth || (source as HTMLImageElement).naturalWidth || (source as HTMLCanvasElement).width || mw;
     const sh = (source as HTMLVideoElement).videoHeight || (source as HTMLImageElement).naturalHeight || (source as HTMLCanvasElement).height || mh;
 
-    const scale = Math.max(playerWidth / sw, playerHeight / sh);
-    const dw = sw * scale;
-    const dh = sh * scale;
-    const dx = x + (playerWidth - dw) / 2;
-    const dy = y + (playerHeight - dh) / 2;
+    const targetRatio = playerWidth / playerHeight;
+    const sourceRatio = sw / sh;
 
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(x, y, playerWidth, playerHeight);
-    ctx.clip();
+    let sWidth = sw;
+    let sHeight = sh;
+    let sx = 0;
+    let sy = 0;
+
+    if (sourceRatio > targetRatio) {
+      sWidth = sh * targetRatio;
+      sx = (sw - sWidth) / 2;
+    } else {
+      sHeight = sw / targetRatio;
+      sy = (sh - sHeight) / 2;
+    }
 
     if (mirror) {
-      const mirroredDx = w - dx - dw;
+      const mirroredX = w - x - playerWidth;
       ctx.save();
       ctx.translate(w, 0);
       ctx.scale(-1, 1);
-      ctx.drawImage(mask, mirroredDx, dy, dw, dh);
+      ctx.drawImage(mask, sx, sy, sWidth, sHeight, mirroredX, y, playerWidth, playerHeight);
       ctx.globalCompositeOperation = 'source-in';
-      ctx.drawImage(source, mirroredDx, dy, dw, dh);
+      ctx.drawImage(source, sx, sy, sWidth, sHeight, mirroredX, y, playerWidth, playerHeight);
       ctx.restore();
     } else {
-      ctx.drawImage(mask, dx, dy, dw, dh);
+      ctx.drawImage(mask, sx, sy, sWidth, sHeight, x, y, playerWidth, playerHeight);
       ctx.globalCompositeOperation = 'source-in';
-      ctx.drawImage(source, dx, dy, dw, dh);
+      ctx.drawImage(source, sx, sy, sWidth, sHeight, x, y, playerWidth, playerHeight);
     }
 
-    ctx.restore();
     return output;
   }
 
