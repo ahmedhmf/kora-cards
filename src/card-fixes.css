@@ -1,18 +1,27 @@
 .result .card {
-  aspect-ratio: 1061 / 1483 !important;
   position: relative !important;
-  width: 100%;
-  overflow: visible !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100dvh !important;
+  aspect-ratio: 1080 / 1920 !important;
+  margin: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   border: 0 !important;
   box-shadow: none !important;
   background: transparent !important;
+  overflow: hidden !important;
 }
 
 .card-canvas {
   display: block;
   width: 100%;
-  height: auto;
-  aspect-ratio: 1061 / 1483;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100dvh;
+  aspect-ratio: 1080 / 1920;
   object-fit: contain;
   filter: drop-shadow(0 18px 24px #0009);
 }

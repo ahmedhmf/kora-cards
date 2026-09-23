@@ -460,7 +460,8 @@ export class CardRendererService {
 
   private compose(canvas: HTMLCanvasElement, player: HTMLCanvasElement, data: CardData) {
     const ctx = canvas.getContext('2d')!;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
     if (data.design === 'blue-gold') {
       this.drawExactCardOne(ctx, player, data);
       return;
@@ -483,6 +484,8 @@ export class CardRendererService {
   ) {
     const w = 1080;
     const h = 1920;
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, w, h);
     ctx.drawImage(this.cardOne.background, 0, 0, w, h);
     ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
     ctx.fillRect(0, 0, w, h);

@@ -1,6 +1,6 @@
 <main class="app-shell">
   <div class="catalogue-rail" aria-hidden="true"><span></span><img src="brand/kora-logo.png" alt=""><b>FOOTBALL CULTURE</b></div>
-  <header *ngIf="store.stage() !== 'camera' && store.stage() !== 'countdown' && store.stage() !== 'recording'"><button class="brand brand-button" type="button" (click)="store.resetToHome()" aria-label="Return to Kora home"><img class="brand-logo" src="brand/kora-logo.png" alt="Kora"></button><button *ngIf="store.experience()!=='home'" class="start-over" type="button" (click)="store.resetToHome()">START OVER</button><span *ngIf="store.experience()==='home'" class="step">CREATIVE STUDIO</span></header>
+  <header *ngIf="store.stage() !== 'camera' && store.stage() !== 'countdown' && store.stage() !== 'recording' && store.stage() !== 'result'"><button class="brand brand-button" type="button" (click)="store.resetToHome()" aria-label="Return to Kora home"><img class="brand-logo" src="brand/kora-logo.png" alt="Kora"></button><button *ngIf="store.experience()!=='home'" class="start-over" type="button" (click)="store.resetToHome()">START OVER</button><span *ngIf="store.experience()==='home'" class="step">CREATIVE STUDIO</span></header>
 
   <section class="studio-home" *ngIf="store.experience()==='home'">
     <div class="studio-ball" aria-hidden="true"><img src="brand/kora-ball.png" alt=""><span>01 / 02</span></div>
@@ -77,27 +77,56 @@
       </div>
 
       <div class="iphone-shutter-bar" *ngIf="store.stage()==='camera'">
+        <div class="shutter-bar-spacer"></div>
+
         <button class="iphone-shutter-button" type="button" (click)="store.startSequence()" [disabled]="store.cardLoading()" aria-label="Record Video">
           <span class="shutter-outer-ring">
             <span class="shutter-inner-circle"></span>
           </span>
+        </button>
+
+        <button class="iphone-flip-button" type="button" (click)="store.toggleFacingMode()" [disabled]="store.cardLoading()" aria-label="Switch Camera" title="Switch Camera">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+          </svg>
         </button>
       </div>
     </div>
   </section>
 
   <section class="result" *ngIf="store.experience()==='card'&&store.stage()==='result'">
-    <div class="result-heading"><div><span>CARD CREATED</span><h2>That’s your moment.</h2></div><b>01/01</b></div>
-    <div class="match-panel"><img src="brand/kora-ball.png" alt="" aria-hidden="true"><p class="player-match">You remind us of <strong>{{store.matchedPlayer().name}}</strong></p></div>
     <div class="card">
       <canvas #cardCanvas class="card-canvas" width="1080" height="1920" aria-label="Your generated player card"></canvas>
       <video *ngIf="store.cardMediaType()==='video'" #replay class="processing-video" [src]="store.replayUrl()" autoplay muted loop playsinline (loadeddata)="store.renderCard(replay,cardCanvas)"></video>
       <img *ngIf="store.cardMediaType()==='image'" #replayImage class="processing-video" [src]="store.replayUrl()" alt="" (load)="store.renderCardPhoto(replayImage,cardCanvas)">
       <div class="card-loader" *ngIf="store.cardLoading()"><span></span> Removing background…</div>
     </div>
-    <div class="export-grid"><button class="primary" (click)="store.share(cardCanvas)" [disabled]="store.isSharing()||store.driveUploading()">SHARE IMAGE</button><button class="primary video-action" (click)="store.shareCardVideo(cardCanvas)" [disabled]="store.isSharing()||store.driveUploading()">{{store.isSharing()?'CREATING…':'SHARE VIDEO'}}</button><button class="secondary" (click)="store.download(cardCanvas)" [disabled]="store.isSharing()||store.driveUploading()">DOWNLOAD IMAGE</button><button class="secondary" (click)="store.downloadCardVideo(cardCanvas)" [disabled]="store.isSharing()||store.driveUploading()">DOWNLOAD VIDEO</button><button *ngIf="store.driveAvailable()" class="drive-action" type="button" (click)="store.saveCardVideoToDrive(cardCanvas)" [disabled]="store.isSharing()||store.driveUploading()">{{store.driveUploading()?'SAVING…':'SAVE VIDEO TO GOOGLE DRIVE'}}</button></div>
-    <p class="drive-status" *ngIf="store.driveMessage()">{{store.driveMessage()}}</p>
-    <button class="download" (click)="store.retake()">Retake celebration</button>
+
+    <div class="result-action-bar" *ngIf="!store.cardLoading()">
+      <button class="icon-action-btn" type="button" (click)="store.shareCardVideo(cardCanvas)" [disabled]="store.isSharing()||store.driveUploading()" aria-label="Share Video" title="Share Video">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+          <polyline points="16 6 12 2 8 6"/>
+          <line x1="12" y1="2" x2="12" y2="15"/>
+        </svg>
+      </button>
+
+      <button class="icon-action-btn" type="button" (click)="store.downloadCardVideo(cardCanvas)" [disabled]="store.isSharing()||store.driveUploading()" aria-label="Save Video" title="Save Video">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+      </button>
+
+      <button class="icon-action-btn" type="button" (click)="store.resetToHome()" aria-label="Go Home" title="Go Home">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+      </button>
+    </div>
+
     <div class="error" *ngIf="store.error()">{{store.error()}}</div>
   </section>
 
