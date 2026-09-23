@@ -20,7 +20,7 @@
     </div>
     <div class="eyebrow"><i></i> YOUR MOMENT. YOUR CARD.</div>
     <h1>CREATE<br><em>YOUR CARD</em></h1>
-    <p class="intro-copy">Give us your best goal celebration. In 10 seconds, the camera records a two-second clip and turns it into your own Kora card.</p>
+    <p class="intro-copy">Give us your best goal celebration. In 3 seconds, the camera records a two-second clip and turns it into your own Kora card.</p>
     <div class="player-fields">
       <label>PLAYER NAME<input [ngModel]="store.playerName()" (ngModelChange)="store.setName($event)" maxlength="18" placeholder="Your name"></label>
       <label>POSITION
@@ -44,7 +44,7 @@
       </label>
       <label class="number">NUMBER<input [ngModel]="store.playerNumber()" (ngModelChange)="store.setNumber($event)" type="number" min="0" max="99"></label>
     </div>
-    <fieldset class="design-picker">
+    <fieldset class="design-picker" *ngIf="false">
       <legend>CHOOSE YOUR CARD DESIGN</legend>
       <button type="button" [class.selected]="store.cardDesign()==='blue-gold'" (click)="store.setCardDesign('blue-gold')"><span class="design-preview design-one"><b>01</b></span><strong>BLACK / RED</strong><small>Textile edition</small></button>
       <button type="button" [class.selected]="store.cardDesign()==='red-black'" (click)="store.setCardDesign('red-black')"><span class="design-preview design-two"><b>02</b></span><strong>WHITE / TECH</strong><small>Graphic edition</small></button>
@@ -79,7 +79,7 @@
       <div class="recording" *ngIf="store.stage()==='recording'"><i></i> CELEBRATE!</div>
       <img class="viewfinder-ball" src="brand/kora-ball.png" alt="" aria-hidden="true">
     </div>
-    <div class="camera-copy" *ngIf="store.stage()==='camera'"><h2>Ready for kickoff?</h2><p>Choose a quick photo or record your celebration.</p><div class="capture-actions"><button class="primary" type="button" (click)="store.captureCardPhoto(camera)" [disabled]="store.cardLoading()"><span class="camera-icon">●</span> TAKE PHOTO NOW</button><button class="secondary" type="button" (click)="store.startSequence()" [disabled]="store.cardLoading()">RECORD VIDEO — 10 SEC TIMER</button></div></div>
+    <div class="camera-copy" *ngIf="store.stage()==='camera'"><h2>Ready for kickoff?</h2><p>Choose a quick photo or record your celebration.</p><div class="capture-actions"><button class="primary" type="button" (click)="store.captureCardPhoto(camera)" [disabled]="store.cardLoading()"><span class="camera-icon">●</span> TAKE PHOTO NOW</button><button class="secondary" type="button" (click)="store.startSequence()" [disabled]="store.cardLoading()">RECORD VIDEO — 3 SEC TIMER</button></div></div>
     <p class="camera-copy" *ngIf="store.stage()==='countdown'">Find your mark. Your camera starts automatically.</p>
   </section>
 

@@ -15,7 +15,7 @@ export class AppComponent implements OnDestroy {
   @ViewChild('camera') camera?: ElementRef<HTMLVideoElement>;
   @ViewChild('replay') replay?: ElementRef<HTMLVideoElement>;
   readonly stage = signal<Stage>('intro');
-  readonly countdown = signal(10);
+  readonly countdown = signal(3);
   readonly error = signal('');
   readonly isSharing = signal(false);
   playerName = '';
@@ -38,7 +38,7 @@ export class AppComponent implements OnDestroy {
 
   async startSequence(): Promise<void> {
     this.stage.set('countdown');
-    for(let remaining=10;remaining>0;remaining--){this.countdown.set(remaining);await this.delay(1000);}
+    for(let remaining=3;remaining>0;remaining--){this.countdown.set(remaining);await this.delay(1000);}
     await this.recordCelebration();
   }
 
