@@ -53,36 +53,47 @@ header { margin-bottom: 24px !important; }
 .intro:before { display: none; }
 .hero-product {
   position: relative;
-  height: clamp(260px, 59vw, 355px);
-  margin: 0 -26px 24px;
+  height: 140px;
+  margin: 0 -26px 18px;
   overflow: hidden;
   background:
     linear-gradient(124deg, #c6c8c9 0 19%, transparent 19% 23%, #dde0e0 23% 33%, transparent 33%),
     linear-gradient(180deg, #fff, #f0f0ee);
   border-block: 1px solid #c2c2c0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .hero-product:after {
   content: '';
   position: absolute;
-  right: -9%;
-  bottom: -30%;
-  width: 76%;
-  aspect-ratio: 1;
+  left: 50%;
+  bottom: 8px;
+  width: 90px;
+  height: 20px;
   border-radius: 50%;
-  background: rgba(0,0,0,.07);
-  filter: blur(16px);
-  transform: scaleY(.18);
+  background: rgba(0,0,0,.25);
+  filter: blur(8px);
+  transform: translateX(-50%) scaleY(.25);
 }
 
 .hero-product img {
   position: absolute;
   z-index: 2;
-  width: min(88%, 480px);
-  right: -5%;
+  width: 110px;
+  height: 110px;
+  object-fit: contain;
+  left: 50%;
   top: 50%;
-  transform: translateY(-50%) rotate(-6deg);
-  filter: drop-shadow(-15px 22px 18px rgba(0,0,0,.23));
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0px 10px 14px rgba(0,0,0,.3));
+  animation: spinKoraBall 16s linear infinite;
+}
+
+@keyframes spinKoraBall {
+  0% { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
 }
 
 .hero-mark {
@@ -122,7 +133,7 @@ h1 em { color: var(--kora-black) !important; font-style: normal !important; -web
 .design-picker strong { font-size: .66rem; }
 .design-picker small { margin-top: 3px; color: #777; font-size: .58rem; }
 label { color: #555 !important; }
-input, .player-fields select {
+.player-fields input, .player-fields select {
   border: 1px solid #9d9d9b !important;
   background: #fff !important;
   color: var(--kora-black) !important;
@@ -212,8 +223,8 @@ input:focus, .player-fields select:focus-visible { border-color: var(--kora-red)
   .catalogue-rail, .hero-product { margin-inline: -18px; }
   .catalogue-rail { padding-inline: 18px; }
   .hero-mark, .hero-index { left: 18px; }
-  .hero-product { height: 275px; }
-  .hero-product img { width: 98%; right: -14%; }
+  .hero-product { height: 130px; }
+  .hero-product img { width: 100px; height: 100px; }
   .studio-ball,.filter-hero { margin-inline: -18px; }
   .studio-ball img { width: 330px; right: -58px; }
   .filter-hero img { width: 290px; right: -58px; }

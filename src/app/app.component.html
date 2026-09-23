@@ -1,6 +1,6 @@
 <main class="app-shell">
   <div class="catalogue-rail" aria-hidden="true"><span></span><img src="brand/kora-logo.png" alt=""><b>FOOTBALL CULTURE</b></div>
-  <header *ngIf="store.stage() !== 'camera' && store.stage() !== 'countdown' && store.stage() !== 'recording' && store.stage() !== 'result'"><button class="brand brand-button" type="button" (click)="store.resetToHome()" aria-label="Return to Kora home"><img class="brand-logo" src="brand/kora-logo.png" alt="Kora"></button><button *ngIf="store.experience()!=='home'" class="start-over" type="button" (click)="store.resetToHome()">START OVER</button><span *ngIf="store.experience()==='home'" class="step">CREATIVE STUDIO</span></header>
+  <header *ngIf="store.stage() !== 'camera' && store.stage() !== 'countdown' && store.stage() !== 'recording' && store.stage() !== 'result'"><button class="brand brand-button" type="button" (click)="store.resetToHome()" aria-label="Return to Kora home"><img class="brand-logo" src="brand/kora-logo.png" alt="Kora"></button><button *ngIf="store.stage()!=='intro'" class="start-over" type="button" (click)="store.resetToHome()">START OVER</button><span *ngIf="store.stage()==='intro'" class="step">PLAYER CARD STUDIO</span></header>
 
   <section class="studio-home" *ngIf="store.experience()==='home'">
     <div class="studio-ball" aria-hidden="true"><img src="brand/kora-ball.png" alt=""><span>01 / 02</span></div>
@@ -13,16 +13,12 @@
   </section>
 
   <section class="intro" *ngIf="store.experience()==='card'&&store.stage()==='intro'">
-    <div class="hero-product" aria-hidden="true">
-      <div class="hero-mark">MATCH BALL<br><b>2026 / 27</b></div>
-      <img src="brand/kora-ball.png" alt="">
-      <span class="hero-index">01</span>
-    </div>
     <div class="eyebrow"><i></i> YOUR MOMENT. YOUR CARD.</div>
     <h1>CREATE<br><em>YOUR CARD</em></h1>
     <p class="intro-copy">Give us your best goal celebration. In 3 seconds, the camera records a two-second clip and turns it into your own Kora card.</p>
     <div class="player-fields">
-      <label>PLAYER NAME<input [ngModel]="store.playerName()" (ngModelChange)="store.setName($event)" maxlength="18" placeholder="Your name"></label>
+      <label>PLAYER NAME<input [ngModel]="store.playerName()" (ngModelChange)="store.setName($event)" maxlength="18" placeholder="e.g. Cristiano"></label>
+      <label>INSTAGRAM<input [ngModel]="store.instagramHandle()" (ngModelChange)="store.setInstagramHandle($event)" maxlength="24" placeholder="@username"></label>
       <label>POSITION
         <select [ngModel]="store.playerPosition()" (ngModelChange)="store.setPosition($event)" aria-label="Player position">
           <option value="GK">GK — Goalkeeper</option>
@@ -42,26 +38,8 @@
           <option value="ST">ST — Striker</option>
         </select>
       </label>
-      <label class="number">NUMBER<input [ngModel]="store.playerNumber()" (ngModelChange)="store.setNumber($event)" type="number" min="0" max="99"></label>
+      <label>SHIRT NUMBER<input [ngModel]="store.playerNumber()" (ngModelChange)="store.setNumber($event)" type="number" min="0" max="99" placeholder="10"></label>
     </div>
-    <fieldset class="design-picker" *ngIf="false">
-      <legend>CHOOSE YOUR CARD DESIGN</legend>
-      <button type="button" [class.selected]="store.cardDesign()==='blue-gold'" (click)="store.setCardDesign('blue-gold')"><span class="design-preview design-one"><b>01</b></span><strong>BLACK / RED</strong><small>Textile edition</small></button>
-      <button type="button" [class.selected]="store.cardDesign()==='red-black'" (click)="store.setCardDesign('red-black')"><span class="design-preview design-two"><b>02</b></span><strong>WHITE / TECH</strong><small>Graphic edition</small></button>
-      <button type="button" [class.selected]="store.cardDesign()==='white-red'" (click)="store.setCardDesign('white-red')"><span class="design-preview design-three"><b>03</b></span><strong>BALL / WHITE</strong><small>Product edition</small></button>
-      <button type="button" [class.selected]="store.cardDesign()==='mono-red'" (click)="store.setCardDesign('mono-red')"><span class="design-preview design-four"><b>04</b></span><strong>MONO / RED</strong><small>4:5 edition</small></button>
-    </fieldset>
-    <fieldset class="camera-picker">
-      <legend>SELECT CAMERA</legend>
-      <div class="camera-toggle-group">
-        <button type="button" [class.selected]="store.facingMode()==='environment'" (click)="store.setFacingMode('environment')">
-          📷 <span>BACK CAMERA</span>
-        </button>
-        <button type="button" [class.selected]="store.facingMode()==='user'" (click)="store.setFacingMode('user')">
-          🤳 <span>FRONT CAMERA</span>
-        </button>
-      </div>
-    </fieldset>
     <button class="primary" (click)="store.openCamera()"><span class="camera-icon">●</span> OPEN CAMERA <b>→</b></button>
     <p class="privacy">Your recording stays on this device.</p>
     <div class="error" *ngIf="store.error()">{{store.error()}}</div>
@@ -105,9 +83,9 @@
     <div class="result-action-bar" *ngIf="!store.cardLoading()">
       <button class="icon-action-btn" type="button" (click)="store.shareCardVideo(cardCanvas)" [disabled]="store.isSharing()||store.driveUploading()" aria-label="Share Video" title="Share Video">
         <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
-          <polyline points="16 6 12 2 8 6"/>
-          <line x1="12" y1="2" x2="12" y2="15"/>
+          <path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/>
+          <path d="M12 3v13"/>
+          <path d="M7 8l5-5 5 5"/>
         </svg>
       </button>
 

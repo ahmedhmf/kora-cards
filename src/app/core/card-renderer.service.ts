@@ -6,6 +6,7 @@ import type { FacingMode } from './camera.service';
 
 export interface CardData {
   name: string;
+  instagramHandle?: string;
   position: string;
   number: number;
   design: CardDesign;
@@ -145,43 +146,81 @@ export class CardRendererService {
     return canvas;
   }
 
+  private rawPlayerLayer(
+    source: HTMLVideoElement | HTMLImageElement,
+    canvasWidth: number,
+    canvasHeight: number,
+    design: CardDesign,
+    isMirrored: boolean,
+  ): HTMLCanvasElement {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return canvas;
+
+    const compact = design === 'mono-red';
+    const x = compact ? 157 : 145;
+    const y = compact ? 250 : 345;
+    const playerWidth = compact ? 766 : 790;
+    const playerHeight = compact ? 740 : 870;
+
+    const sw = source instanceof HTMLVideoElement ? source.videoWidth || 640 : source.naturalWidth || 640;
+    const sh = source instanceof HTMLVideoElement ? source.videoHeight || 480 : source.naturalHeight || 480;
+
+    const sourceAspect = sw / sh;
+    const targetAspect = playerWidth / playerHeight;
+
+    let sx = 0, sy = 0, sWidth = sw, sHeight = sh;
+    if (sourceAspect > targetAspect) {
+      sWidth = sh * targetAspect;
+      sx = (sw - sWidth) / 2;
+    } else {
+      sHeight = sw / targetAspect;
+      sy = (sh - sHeight) / 2;
+    }
+
+    ctx.save();
+    if (isMirrored) {
+      ctx.translate(canvasWidth, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(
+        source,
+        sx, sy, sWidth, sHeight,
+        canvasWidth - (x + playerWidth), y, playerWidth, playerHeight,
+      );
+    } else {
+      ctx.drawImage(
+        source,
+        sx, sy, sWidth, sHeight,
+        x, y, playerWidth, playerHeight,
+      );
+    }
+    ctx.restore();
+
+    return canvas;
+  }
+
   async start(video: HTMLVideoElement, canvas: HTMLCanvasElement, getData: () => CardData) {
     this.stop();
-    await Promise.all([this.loadAssets(), this.loadSegmenter(), this.loadCanvasFonts()]);
+    await Promise.all([this.loadAssets(), this.loadCanvasFonts()]);
     canvas.width = 1080;
     canvas.height = getData().design === 'mono-red' ? 1350 : 1920;
     if (video.readyState < 2)
       await new Promise<void>((resolve) => (video.onloadeddata = () => resolve()));
-    await video.play();
-    let latestPlayer: HTMLCanvasElement | undefined;
+    try { await video.play(); } catch {}
     const render = () => {
-      if (!this.segmenter) return;
-      if (!this.busy && video.readyState >= 2) {
-        this.busy = true;
-        this.segmenter.segmentForVideo(video, performance.now(), (result) => {
-          const masks = result.confidenceMasks;
-          if (masks?.length) {
-            const mask = masks.length > 1 ? masks[1] : masks[0];
-            const data = getData();
-            const player = this.playerLayer(
-              video,
-              mask.getAsFloat32Array(),
-              mask.width,
-              mask.height,
-              canvas.width,
-              canvas.height,
-              data.design,
-              data.facingMode === 'user',
-            );
-            latestPlayer = player;
-            masks.forEach((item) => item.close());
-          }
-          this.busy = false;
-        });
+      if (video.readyState >= 2) {
+        const data = getData();
+        const player = this.rawPlayerLayer(
+          video,
+          canvas.width,
+          canvas.height,
+          data.design,
+          data.facingMode === 'user',
+        );
+        this.compose(canvas, player, data);
       }
-      // Redraw on every animation frame so canvas animations keep moving even
-      // while MediaPipe is still processing the next segmentation frame.
-      if (latestPlayer) this.compose(canvas, latestPlayer, getData());
       this.frameId = requestAnimationFrame(render);
     };
     render();
@@ -193,24 +232,17 @@ export class CardRendererService {
     getData: () => CardData,
   ) {
     this.stop();
-    await Promise.all([this.loadAssets(), this.loadImageSegmenter(), this.loadCanvasFonts()]);
+    await Promise.all([this.loadAssets(), this.loadCanvasFonts()]);
     canvas.width = 1080;
     canvas.height = getData().design === 'mono-red' ? 1350 : 1920;
-    const result = this.imageSegmenter!.segment(image);
-    const masks = result.confidenceMasks;
-    if (!masks?.length) throw new Error('No person mask was returned');
-    const mask = masks.length > 1 ? masks[1] : masks[0];
-    const player = this.playerLayer(
+    const data = getData();
+    const player = this.rawPlayerLayer(
       image,
-      mask.getAsFloat32Array(),
-      mask.width,
-      mask.height,
       canvas.width,
       canvas.height,
-      getData().design,
-      getData().facingMode === 'user',
+      data.design,
+      data.facingMode === 'user',
     );
-    masks.forEach((item) => item.close());
     const render = () => {
       this.compose(canvas, player, getData());
       this.frameId = requestAnimationFrame(render);
@@ -562,7 +594,7 @@ export class CardRendererService {
     overall: number,
     position: string,
   ) {
-    ctx.fillStyle = '#090909';
+    ctx.fillStyle = '#ed1c24';
     ctx.textAlign = 'left';
     ctx.font = '900 126px Chakra Petch';
     ctx.fillText(String(overall), 215, 655);
@@ -735,7 +767,7 @@ export class CardRendererService {
     centerX: number,
     y: number,
   ) {
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = '#ed1c24';
     ctx.textAlign = 'center';
     ctx.font = '900 94px Chakra Petch';
     ctx.fillText(String(overall), centerX, y);
