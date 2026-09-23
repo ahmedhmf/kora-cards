@@ -13,8 +13,8 @@ export class CameraService{
  attach(video:HTMLVideoElement){if(this.stream)video.srcObject=this.stream;}
  capture(video:HTMLVideoElement, facingMode: FacingMode = 'environment'){
   if(!this.stream||video.readyState<2)throw new Error('Camera is not ready');
-  const canvas=document.createElement('canvas'),portrait=video.videoHeight>=video.videoWidth;
-  canvas.width=portrait?video.videoWidth:video.videoHeight;canvas.height=portrait?video.videoHeight:video.videoWidth;
+  const canvas=document.createElement('canvas');
+  canvas.width=video.videoWidth||1080;canvas.height=video.videoHeight||1920;
   const ctx=canvas.getContext('2d')!;
   if(facingMode==='user'){ctx.translate(canvas.width,0);ctx.scale(-1,1);}
   ctx.drawImage(video,0,0,canvas.width,canvas.height);
