@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, isDevMode } from '@angular/core';
 import { env, pipeline } from '@huggingface/transformers';
 
 /** Portrait-specific background matting. All inference stays on the phone. */
@@ -61,6 +61,62 @@ export class MobileBackgroundRemovalService {
     }
     this.removeDetachedSpecks(ctx, result.width, result.height);
     return result;
+  }
+
+  /**
+   * Development-only A/B test: both models get the exact same input and neither
+   * receives KORA's component cleanup, mask shaping or card crop.
+   * ORMBG is disposed after its turn to reduce mobile memory pressure.
+   */
+  async compareRaw(
+    source: HTMLCanvasElement,
+    onResult: (model: 'modnet' | 'ormbg', result: {canvas: HTMLCanvasElement; milliseconds: number; transparentPercent: number} | {error: string}) => void,
+  ): Promise<void> {
+    if (!isDevMode()) throw new Error('Model comparisons are only available in development');
+    env.useBrowserCache = true;
+    const models = ['modnet', 'ormbg'] as const;
+    const input = source.toDataURL('image/png');
+    for (const modelName of models) {
+      const start = performance.now();
+      let temp: Awaited<ReturnType<typeof pipeline<'background-removal'>>> | undefined;
+      try {
+        // The same image is processed separately. Timing includes loading the
+        // model on first use, which is useful but not a pure inference benchmark.
+        const remover = modelName === 'modnet'
+          ? await this.load()
+          : (temp = await pipeline('background-removal', 'Orangebot/ormbg-ONNX', {
+              device: 'wasm', dtype: 'uint8',
+            }));
+        const outputs = await remover([input]);
+        if (!outputs.length || outputs[0].channels !== 4) {
+          throw new Error('Model did not produce a transparent RGBA image');
+        }
+        const raw = await outputs[0].toCanvas();
+        const canvas = document.createElement('canvas');
+        canvas.width = source.width; canvas.height = source.height;
+        const ctx = canvas.getContext('2d', {willReadFrequently: true});
+        if (!ctx) throw new Error('Could not create comparison canvas');
+        ctx.drawImage(raw, 0, 0, canvas.width, canvas.height);
+        const rgba = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        let transparent = 0, total = 0;
+        for (let i = 3; i < rgba.length; i += 4 * 8) {
+          total++;
+          if (rgba[i] < 32) transparent++;
+        }
+        const transparentPercent = Math.round(100 * transparent / Math.max(1, total));
+        if (transparentPercent < 2) {
+          throw new Error('Output is almost fully opaque; check background-removal model output');
+        }
+        onResult(modelName, {canvas, milliseconds: Math.round(performance.now() - start), transparentPercent});
+      } catch (error) {
+        console.warn('KORA raw model comparison failed', modelName, error);
+        onResult(modelName, {error: error instanceof Error ? error.message : 'Model inference failed'});
+      } finally {
+        if (temp) await temp.dispose();
+      }
+      // Let the UI update between heavy WASM inference passes.
+      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+    }
   }
 
   /** Conservative cleanup only: connected chairs are deliberately NOT cut automatically. */
