@@ -90,7 +90,7 @@
       <div class="card-loader" *ngIf="store.cardLoading()"><span></span> Removing background…</div>
     </div>
 
-    <div class="result-action-bar" *ngIf="!store.cardLoading()">
+    <div class="result-action-bar" *ngIf="!store.cardLoading() && !store.error()">
       <button class="icon-action-btn" type="button" (click)="store.renderEngine()==='template' ? store.download(cardCanvas) : store.downloadCardVideo(cardCanvas)" [disabled]="store.isSharing()||store.driveUploading()" [attr.aria-label]="store.renderEngine()==='template' ? 'Save Photo' : 'Save Video'" [attr.title]="store.renderEngine()==='template' ? 'Save Photo' : 'Save Video'">
         <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -107,8 +107,9 @@
       </button>
     </div>
 
-    <button *ngIf="store.renderEngine()==='template' && !store.cardLoading()" type="button" class="secondary" (click)="store.share(cardCanvas)">SHARE PHOTO</button>
+    <button *ngIf="store.renderEngine()==='template' && !store.cardLoading() && !store.error()" type="button" class="secondary" (click)="store.share(cardCanvas)">SHARE PHOTO</button>
     <div class="error" *ngIf="store.error()">{{store.error()}}</div>
+    <button *ngIf="store.error() && store.renderEngine()==='template'" type="button" class="secondary" (click)="store.retake()">RETAKE PHOTO</button>
   </section>
 
   <section class="filter-source" *ngIf="store.experience()==='filter'&&store.filterStage()==='source'">
