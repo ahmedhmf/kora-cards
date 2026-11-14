@@ -17,6 +17,9 @@ export class TemplateCardRendererService {
   private generation = 0;
   private busy = false;
   private lastFrame = 0;
+  private previewBounds?: {x:number;y:number;width:number;height:number};
+  private lastSegmentationTime = -1;
+  private lastPreviewWarning = 0;
   private loadTemplate(): Promise<void> {
     if (!this.templatePromise) {
       this.templatePromise = new Promise<void>((resolve, reject) => {
@@ -125,7 +128,7 @@ export class TemplateCardRendererService {
     };
   }
 
-  private compose(canvas: HTMLCanvasElement, person: HTMLCanvasElement, data: CardData) {
+  private compose(canvas: HTMLCanvasElement, person: HTMLCanvasElement, data: CardData, boundsOverride?: {x:number;y:number;width:number;height:number}) {
     const ctx = canvas.getContext('2d')!;
     ctx.clearRect(0, 0, this.width, this.height);
     ctx.drawImage(this.template, 0, 0, this.width, this.height);
@@ -134,7 +137,7 @@ export class TemplateCardRendererService {
     ctx.beginPath(); ctx.rect(165, 342, 546, 519); ctx.clip();
     // Position the actual extracted silhouette, not the complete source
     // photograph. This prevents close-up phone photos from being overzoomed.
-    const bounds = this.subjectBounds(person);
+    const bounds = boundsOverride ?? this.subjectBounds(person);
     // Photo booth portrait: prioritize a recognizably large face and upper body.
     // Wide cutouts may crop at the left/right of the player window, like a sports
     // portrait; never crop the top of the head merely to fill the frame.
@@ -260,15 +263,70 @@ export class TemplateCardRendererService {
   async startLivePreview(video: HTMLVideoElement, canvas: HTMLCanvasElement, getData: () => CardData) {
     this.stop();
     const generation = this.generation;
+    // Draw the card immediately. If the lightweight model isn't ready,
+    // keep the raw framed view until segmentation becomes available.
     await Promise.all([this.loadTemplate(), document.fonts?.ready ?? Promise.resolve()]);
     if (generation !== this.generation) return;
     canvas.width = this.width;
     canvas.height = this.height;
+    if (video.readyState >= 2) this.drawLiveCardFrame(canvas, video, getData());
+
+    let segmenterReady = false;
+    void this.loadSegmenter().then(() => {
+      if (generation === this.generation) segmenterReady = true;
+    }).catch(error => {
+      console.warn('KORA live segmentation unavailable; retaining camera framing guide', error);
+    });
+
     const paint = (time: number) => {
       if (generation !== this.generation) return;
-      if (time - this.lastFrame >= 66 && video.readyState >= 2) {
+      // 7–8 AI frames/second is a practical starting point for a phone PWA;
+      // never overlap inference requests.
+      if (video.readyState >= 2 && !this.busy && time - this.lastFrame >= 140) {
         this.lastFrame = time;
-        this.drawLiveCardFrame(canvas,video,getData());
+        if (!segmenterReady) {
+          this.drawLiveCardFrame(canvas, video, getData());
+        } else {
+          this.busy = true;
+          const data = getData();
+          try {
+            const source = this.sourceCanvas(video, data);
+            // MediaPipe VIDEO timestamps must increase strictly, including
+            // across camera restarts and reused segmenter instances.
+            const stamp = Math.max(time, this.lastSegmentationTime + 1);
+            this.lastSegmentationTime = stamp;
+            void this.segment(source, stamp).then(person => {
+              if (generation !== this.generation) return;
+              const next = this.subjectBounds(person);
+              const prev = this.previewBounds;
+              // Smooth noisy silhouettes to prevent jumping on live preview.
+              const blend = (previous: number, current: number) => previous * .65 + current * .35;
+              const bounds = prev ? {
+                x: blend(prev.x, next.x), y: blend(prev.y, next.y),
+                width: blend(prev.width, next.width),
+                height: blend(prev.height, next.height),
+              } : next;
+              this.previewBounds = bounds;
+              this.compose(canvas, person, getData(), bounds);
+            }).catch(error => {
+              if (generation !== this.generation) return;
+              if (time - this.lastPreviewWarning > 5000) {
+                console.warn('Live person preview skipped; retaining camera guide', error);
+                this.lastPreviewWarning = time;
+              }
+              this.drawLiveCardFrame(canvas, video, getData());
+            }).finally(() => {
+              if (generation === this.generation) this.busy = false;
+            });
+          } catch (error) {
+            if (time - this.lastPreviewWarning > 5000) {
+              console.warn('Live preview could not process frame', error);
+              this.lastPreviewWarning = time;
+            }
+            this.drawLiveCardFrame(canvas, video, getData());
+            this.busy = false;
+          }
+        }
       }
       this.frameId = requestAnimationFrame(paint);
     };
@@ -290,6 +348,9 @@ export class TemplateCardRendererService {
     this.frameId = undefined;
     this.busy = false;
     this.lastFrame = 0;
+    this.previewBounds = undefined;
+    this.lastPreviewWarning = 0;
+    // Preserve the last MediaPipe timestamp across preview restarts.
   }
 
   destroy() {
