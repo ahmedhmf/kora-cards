@@ -85,7 +85,13 @@
 
   <section class="result" *ngIf="store.experience()==='card'&&store.stage()==='result'">
     <div class="card">
-      <canvas #cardCanvas class="card-canvas" width="1080" height="1920" aria-label="Your generated player card"></canvas>
+      <canvas #cardCanvas class="card-canvas" width="1080" height="1920" aria-label="Your generated player card"
+        [style.touch-action]="store.eraseMode() ? 'none' : 'auto'"
+        [style.cursor]="store.eraseMode() ? 'crosshair' : 'default'"
+        (pointerdown)="store.startErasing($event,cardCanvas)"
+        (pointermove)="store.eraseCardPoint($event,cardCanvas)"
+        (pointerup)="store.finishErasing()"
+        (pointercancel)="store.finishErasing()"></canvas>
       <video *ngIf="store.cardMediaType()==='video'" #replay class="processing-video" [src]="store.replayUrl()" autoplay muted loop playsinline (loadeddata)="store.renderCard(replay,cardCanvas)"></video>
       <img *ngIf="store.cardMediaType()==='image'" #replayImage class="processing-video" [src]="store.replayUrl()" alt="" (load)="store.renderCardPhoto(replayImage,cardCanvas)">
       <div class="card-loader" *ngIf="store.cardLoading()"><span></span> Removing background…</div>
@@ -108,6 +114,11 @@
       </button>
     </div>
 
+    <div *ngIf="store.renderEngine()==='template' && !store.cardLoading() && !store.error()" class="erase-controls" style="display:flex;gap:8px;margin:8px 0">
+      <button type="button" class="secondary" [attr.aria-pressed]="store.eraseMode()" (click)="store.toggleEraseMode()">{{store.eraseMode()?'DONE ERASING':'ERASE EXTRA BACKGROUND'}}</button>
+      <button type="button" class="secondary" (click)="store.resetErase()">RESET ERASER</button>
+    </div>
+    <p *ngIf="store.eraseMode()" class="privacy">Drag your finger over unwanted objects like the chair. Avoid brushing across your body.</p>
     <button *ngIf="store.renderEngine()==='template' && !store.cardLoading() && !store.error()" type="button" class="secondary" (click)="store.share(cardCanvas)">SHARE PHOTO</button>
     <div class="error" *ngIf="store.error()">{{store.error()}}</div>
     <button *ngIf="store.error() && store.renderEngine()==='template'" type="button" class="secondary" (click)="store.retake()">RETAKE PHOTO</button>
