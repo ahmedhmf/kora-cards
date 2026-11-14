@@ -135,11 +135,20 @@ export class TemplateCardRendererService {
     // Position the actual extracted silhouette, not the complete source
     // photograph. This prevents close-up phone photos from being overzoomed.
     const bounds = this.subjectBounds(person);
-    const targetWidth = 430;
-    const targetHeight = 505;
-    const scale = Math.min(targetWidth / bounds.width, targetHeight / bounds.height);
+    // Photo booth portrait: prioritize a recognizably large face and upper body.
+    // Wide cutouts may crop at the left/right of the player window, like a sports
+    // portrait; never crop the top of the head merely to fill the frame.
+    const desiredWidth = 490;
+    const desiredHeight = 430;
+    const maximumWidth = 680;
+    const maximumHeight = 505;
+    const scale = Math.min(
+      Math.max(desiredWidth / bounds.width, desiredHeight / bounds.height),
+      maximumWidth / bounds.width,
+      maximumHeight / bounds.height,
+    );
     const x = 495 - (bounds.width * scale) / 2;
-    const y = 860 - bounds.height * scale;
+    const y = 858 - bounds.height * scale;
     ctx.drawImage(person, bounds.x, bounds.y, bounds.width, bounds.height,
       x, y, bounds.width * scale, bounds.height * scale);
     ctx.restore();
