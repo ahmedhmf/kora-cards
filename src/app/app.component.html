@@ -101,6 +101,15 @@
         </svg>
       </button>
 
+      <button *ngIf="store.devComparisonAvailable() && store.renderEngine()==='template' && store.cardMediaType()==='image'" class="icon-action-btn compare-action-btn" type="button" (click)="store.toggleComparison()" [disabled]="store.comparisonBusy()" aria-label="Compare MODNet and ORMBG AI models" title="Compare AI models" [attr.aria-pressed]="store.comparisonOpen()">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="2" y="4" width="8" height="16" rx="1"></rect>
+          <rect x="14" y="4" width="8" height="16" rx="1"></rect>
+          <path d="M12 3v18"></path>
+        </svg>
+        <span class="compare-action-label">COMPARE</span>
+      </button>
+
       <button class="icon-action-btn" type="button" (click)="store.resetToHome()" aria-label="Go Home" title="Go Home">
         <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
@@ -112,8 +121,7 @@
     <button *ngIf="store.renderEngine()==='template' && !store.cardLoading() && !store.error()" type="button" class="secondary" (click)="store.share(cardCanvas)">SHARE PHOTO</button>
     <div class="error" *ngIf="store.error()">{{store.error()}}</div>
     <button *ngIf="store.error() && store.renderEngine()==='template'" type="button" class="secondary" (click)="store.retake()">RETAKE PHOTO</button>
-    <!-- Never visible in production: Angular isDevMode() guards the signal and handler. -->
-    <button *ngIf="store.devComparisonAvailable() && store.renderEngine()==='template' && store.cardMediaType()==='image' && !store.cardLoading()" type="button" class="secondary" style="position:absolute;top:8px;right:8px;z-index:35" (click)="store.toggleComparison()">DEV: COMPARE AI MODELS</button>
+    <!-- Developer-only comparison panel; its launcher is in the bottom action bar. -->
     <section *ngIf="store.comparisonOpen() && store.devComparisonAvailable()" class="model-compare-panel" aria-label="Development-only AI comparison">
       <header class="model-compare-heading">
         <strong>RAW BACKGROUND REMOVAL · DEVELOPMENT ONLY</strong>
