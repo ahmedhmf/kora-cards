@@ -16,7 +16,9 @@ export type FilterStage='source'|'camera'|'editor';
 export type CardDesign='blue-gold'|'red-black'|'white-red'|'mono-red';
 export type RenderEngine='legacy'|'template';
 interface CardState{experience:Experience;stage:CardStage;filterStage:FilterStage;facingMode:FacingMode;filterImageUrl:string;filterProcessed:boolean;cardMediaType:'image'|'video';countdown:number;error:string;isSharing:boolean;driveAvailable:boolean;driveUploading:boolean;driveMessage:string;cardLoading:boolean;playerName:string;instagramHandle:string;playerPosition:string;playerNumber:number;cardDesign:CardDesign;renderEngine:RenderEngine;devComparisonAvailable:boolean;comparisonOpen:boolean;comparisonBusy:boolean;comparisonModnet:string;comparisonOrmbg:string;comparisonError:string;replayUrl:string;mediaStream:MediaStream|null;matchedPlayer:RatedPlayer}
-const initialState:CardState={experience:'card',stage:'intro',filterStage:'source',facingMode:'environment',filterImageUrl:'',filterProcessed:false,cardMediaType:'video',countdown:3,error:'',isSharing:false,driveAvailable:!GOOGLE_DRIVE_CONFIG.clientId.startsWith('PASTE_'),driveUploading:false,driveMessage:'',cardLoading:false,playerName:'',instagramHandle:'',playerPosition:'ST',playerNumber:10,cardDesign:'blue-gold',renderEngine:'legacy',devComparisonAvailable:isDevMode(),comparisonOpen:false,comparisonBusy:false,comparisonModnet:'',comparisonOrmbg:'',comparisonError:'',replayUrl:'',mediaStream:null,matchedPlayer:randomPlayer('ST')};
+/** Explicit diagnostic URL switch; not authorization or a security boundary. */
+const comparisonEnabled=()=>isDevMode() || (typeof window!=='undefined' && new URLSearchParams(window.location.search).get('koraCompare')==='1');
+const initialState:CardState={experience:'card',stage:'intro',filterStage:'source',facingMode:'environment',filterImageUrl:'',filterProcessed:false,cardMediaType:'video',countdown:3,error:'',isSharing:false,driveAvailable:!GOOGLE_DRIVE_CONFIG.clientId.startsWith('PASTE_'),driveUploading:false,driveMessage:'',cardLoading:false,playerName:'',instagramHandle:'',playerPosition:'ST',playerNumber:10,cardDesign:'blue-gold',renderEngine:'legacy',devComparisonAvailable:comparisonEnabled(),comparisonOpen:false,comparisonBusy:false,comparisonModnet:'',comparisonOrmbg:'',comparisonError:'',replayUrl:'',mediaStream:null,matchedPlayer:randomPlayer('ST')};
 export const CardStore=signalStore(
  {providedIn:'root'},withState(initialState),
  withMethods((store,camera=inject(CameraService),renderer=inject(CardRendererService),templateRenderer=inject(TemplateCardRendererService),backgroundRemoval=inject(MobileBackgroundRemovalService),exporter=inject(CardExportService),filter=inject(PhotoFilterService),drive=inject(GoogleDriveService))=>{
@@ -40,12 +42,12 @@ export const CardStore=signalStore(
    setCardDesign(cardDesign:CardDesign){patchState(store,{cardDesign})},
    setRenderEngine(renderEngine:RenderEngine){renderer.stop();templateRenderer.stop();patchState(store,{renderEngine,comparisonOpen:false})},
    toggleComparison(){
-    if(!isDevMode()||store.renderEngine()!=='template'||store.cardMediaType()!=='image')return;
+    if(!comparisonEnabled()||store.renderEngine()!=='template'||store.cardMediaType()!=='image')return;
     if(store.comparisonBusy())return;
     patchState(store,{comparisonOpen:!store.comparisonOpen(),comparisonError:''});
    },
    async runComparison(modnetCanvas:HTMLCanvasElement,ormbgCanvas:HTMLCanvasElement){
-    if(!isDevMode()||store.renderEngine()!=='template'||store.cardMediaType()!=='image'||store.comparisonBusy())return;
+    if(!comparisonEnabled()||store.renderEngine()!=='template'||store.cardMediaType()!=='image'||store.comparisonBusy())return;
     const photoUrl=store.replayUrl();
     if(!photoUrl){patchState(store,{comparisonError:'No photo is available to compare.'});return}
     patchState(store,{comparisonBusy:true,comparisonError:'',comparisonModnet:'Loading original photo…',comparisonOrmbg:'Queued…'});
