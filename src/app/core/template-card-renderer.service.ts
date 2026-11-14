@@ -60,7 +60,7 @@ export class TemplateCardRendererService {
     const scale = Math.min(sw / source.width, sh / source.height);
     const cropW = source.width * scale, cropH = source.height * scale;
     const ctx = source.getContext('2d')!;
-    if (data.facingMode === 'user') {
+    if (!photo && data.facingMode === 'user') {
       ctx.translate(source.width, 0);
       ctx.scale(-1, 1);
     }
