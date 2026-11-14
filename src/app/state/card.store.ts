@@ -44,7 +44,8 @@ export const CardStore=signalStore(
     if(!store.eraseMode()||store.renderEngine()!=='template'||store.cardLoading()||store.error())return;
     erasingPointer=event.pointerId;
     canvas.setPointerCapture(event.pointerId);
-    this.eraseCardPoint(event,canvas);
+    const rect=canvas.getBoundingClientRect();
+    if(rect.width&&rect.height)templateRenderer.eraseAt((event.clientX-rect.left)*canvas.width/rect.width,(event.clientY-rect.top)*canvas.height/rect.height,28);
    },
    eraseCardPoint(event:PointerEvent,canvas:HTMLCanvasElement){
     if(!store.eraseMode()||erasingPointer!==event.pointerId)return;
