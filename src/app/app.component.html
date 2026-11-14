@@ -19,7 +19,7 @@
       <button type="button" class="secondary" [attr.aria-pressed]="store.renderEngine()==='template'" (click)="store.setRenderEngine('template')">NEW KORA TEMPLATE</button>
       <button type="button" class="secondary" [attr.aria-pressed]="store.renderEngine()==='legacy'" (click)="store.setRenderEngine('legacy')">CLASSIC CARDS</button>
     </div>
-    <p class="privacy">{{store.renderEngine()==='template' ? 'NEW TEMPLATE: photos only. High-quality local ORMBG AI (initial download required). Classic Cards retain video.' : 'CLASSIC CARDS: original video recording experience.'}}</p>
+    <p class="privacy">{{store.renderEngine()==='template' ? 'NEW TEMPLATE: photos only. Portrait-specific local MODNet AI (initial download required). Classic Cards retain video.' : 'CLASSIC CARDS: original video recording experience.'}}</p>
     <div class="player-fields">
       <label>PLAYER NAME<input [ngModel]="store.playerName()" (ngModelChange)="store.setName($event)" maxlength="18" placeholder="e.g. Cristiano"></label>
       <label>INSTAGRAM<input [ngModel]="store.instagramHandle()" (ngModelChange)="store.setInstagramHandle($event)" maxlength="24" placeholder="@username"></label>
