@@ -44,10 +44,21 @@ export const CardStore=signalStore(
     if(store.comparisonBusy())return;
     patchState(store,{comparisonOpen:!store.comparisonOpen(),comparisonError:''});
    },
-   async runComparison(image:HTMLImageElement,modnetCanvas:HTMLCanvasElement,ormbgCanvas:HTMLCanvasElement){
+   async runComparison(modnetCanvas:HTMLCanvasElement,ormbgCanvas:HTMLCanvasElement){
     if(!isDevMode()||store.renderEngine()!=='template'||store.cardMediaType()!=='image'||store.comparisonBusy())return;
-    if(!image.complete||!image.naturalWidth||!image.naturalHeight){
-      patchState(store,{comparisonError:'The captured photo has not loaded.'});return;
+    const photoUrl=store.replayUrl();
+    if(!photoUrl){patchState(store,{comparisonError:'No photo is available to compare.'});return}
+    patchState(store,{comparisonBusy:true,comparisonError:'',comparisonModnet:'Loading original photo…',comparisonOrmbg:'Queued…'});
+    let image:HTMLImageElement;
+    try{
+      image=await new Promise<HTMLImageElement>((resolve,reject)=>{
+        const photo=new Image();
+        photo.onload=()=>resolve(photo);
+        photo.onerror=()=>reject(new Error('The original photo could not be loaded.'));
+        photo.src=photoUrl;
+      });
+    }catch(error){
+      patchState(store,{comparisonBusy:false,comparisonError:error instanceof Error?error.message:'Photo load failed'});return;
     }
     const source=document.createElement('canvas');
     const scale=Math.min(1,1024/image.naturalWidth,1536/image.naturalHeight);
@@ -61,7 +72,7 @@ export const CardStore=signalStore(
       if(cutout)ctx.drawImage(cutout,0,0,canvas.width,canvas.height);
     };
     paint(modnetCanvas);paint(ormbgCanvas);
-    patchState(store,{comparisonBusy:true,comparisonError:'',comparisonModnet:'Processing…',comparisonOrmbg:'Queued…'});
+    patchState(store,{comparisonError:'',comparisonModnet:'Processing…',comparisonOrmbg:'Queued…'});
     try{
       await backgroundRemoval.compareRaw(source,(model,result)=>{
         const target=model==='modnet'?modnetCanvas:ormbgCanvas;
