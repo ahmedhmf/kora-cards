@@ -52,8 +52,8 @@ export class TemplateCardRendererService {
   private sourceCanvas(media: HTMLVideoElement | HTMLImageElement, data: CardData): HTMLCanvasElement {
     const photo = media instanceof HTMLImageElement;
     const source = document.createElement('canvas');
-    source.width = photo ? 768 : 512;
-    source.height = photo ? 1152 : 768;
+    source.width = photo ? 1024 : 512;
+    source.height = photo ? 1536 : 768;
     const sw = photo ? media.naturalWidth : media.videoWidth;
     const sh = photo ? media.naturalHeight : media.videoHeight;
     if (!sw || !sh) throw new Error('Camera frame is not ready');
@@ -149,24 +149,27 @@ export class TemplateCardRendererService {
       const source = this.sourceCanvas(media, data);
       let person: HTMLCanvasElement;
       if (photo) {
-        try { person = await this.quality.isolate(source); }
-        catch (error) {
-          console.warn('High-quality cutout unavailable; using MediaPipe', error);
-          person = await this.segment(source, time);
-        }
+        // Fail visibly rather than secretly producing a lower-quality cutout.
+        person = await this.quality.isolate(source);
       } else {
         person = await this.segment(source, time);
       }
       if (generation === this.generation) this.compose(canvas, person, getData());
     } catch (e) {
       console.error('KORA player cutout failed', e);
-      // Do not show the unprocessed camera background.
+      // Never present the original background as a successful cutout.
+      if (photo) throw e;
     } finally {
       if (generation === this.generation) this.busy = false;
     }
   }
 
   async start(video: HTMLVideoElement, canvas: HTMLCanvasElement, getData: () => CardData) {
+    // Template mode is still-photo only; legacy handles video.
+    throw new Error('The new KORA template supports photos only. Select Classic Cards for video.');
+  }
+
+  private async oldVideoRenderer(video: HTMLVideoElement, canvas: HTMLCanvasElement, getData: () => CardData) {
     this.stop();
     const generation = this.generation;
     await Promise.all([this.loadTemplate(), this.loadSegmenter(), document.fonts?.ready ?? Promise.resolve()]);
@@ -183,8 +186,8 @@ export class TemplateCardRendererService {
     this.frameId = requestAnimationFrame(tick);
   }
 
-  async startLivePreview(video: HTMLVideoElement, canvas: HTMLCanvasElement, getData: () => CardData) {
-    return this.start(video, canvas, getData);
+  async startLivePreview(_video: HTMLVideoElement, _canvas: HTMLCanvasElement, _getData: () => CardData) {
+    // Live preview is the raw camera feed; heavy AI runs only after taking a photo.
   }
 
   async renderImage(image: HTMLImageElement, canvas: HTMLCanvasElement, getData: () => CardData) {
