@@ -59,7 +59,70 @@ export class MobileBackgroundRemovalService {
         (edgeSamples > 0 && opaqueEdges / edgeSamples > .92)) {
       throw new Error('Portrait AI did not isolate the person. Please try a brighter photo with space around the head and shoulders.');
     }
+    this.removeDetachedSpecks(ctx, result.width, result.height);
     return result;
+  }
+
+  /** Conservative cleanup only: connected chairs are deliberately NOT cut automatically. */
+  private removeDetachedSpecks(ctx: CanvasRenderingContext2D, width: number, height: number) {
+    const image = ctx.getImageData(0, 0, width, height);
+    const pixels = image.data;
+    // Work on a reduced-resolution occupancy grid to cap memory on mobile.
+    const step = 3, cols = Math.ceil(width / step), rows = Math.ceil(height / step);
+    const occupied = new Uint8Array(cols * rows);
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
+        const px = Math.min(width - 1, x * step), py = Math.min(height - 1, y * step);
+        occupied[y * cols + x] = pixels[(py * width + px) * 4 + 3] >= 100 ? 1 : 0;
+      }
+    }
+    const labels = new Int32Array(occupied.length);
+    const queue = new Int32Array(occupied.length);
+    const sizes = [0];
+    let label = 0;
+    for (let start = 0; start < occupied.length; start++) {
+      if (!occupied[start] || labels[start]) continue;
+      label++; let head = 0, tail = 0;
+      labels[start] = label; queue[tail++] = start;
+      while (head < tail) {
+        const pos = queue[head++], x = pos % cols, y = Math.floor(pos / cols);
+        const neighbors = [x > 0 ? pos - 1 : -1, x + 1 < cols ? pos + 1 : -1,
+          y > 0 ? pos - cols : -1, y + 1 < rows ? pos + cols : -1];
+        for (const next of neighbors) {
+          if (next >= 0 && occupied[next] && !labels[next]) {
+            labels[next] = label; queue[tail++] = next;
+          }
+        }
+      }
+      sizes[label] = tail;
+    }
+    const largest = Math.max(0, ...sizes);
+    // Remove only tiny disconnected high-confidence islands, not secondary limbs/hair.
+    const minSize = Math.min(100, Math.max(8, Math.round(largest * .0015)));
+    const erase = new Uint8Array(labels.length);
+    for (let i = 0; i < labels.length; i++) {
+      if (labels[i] && sizes[labels[i]] < minSize) erase[i] = 1;
+    }
+    // Avoid modifying transparent anti-aliasing around the main silhouette:
+    // only remove specks that are not adjacent to a retained component.
+    for (let y = 0; y < height; y++) {
+      const gy = Math.min(rows - 1, Math.floor(y / step));
+      for (let x = 0; x < width; x++) {
+        const gx = Math.min(cols - 1, Math.floor(x / step));
+        if (!erase[gy * cols + gx]) continue;
+        let nearMain = false;
+        for (let oy = -1; oy <= 1 && !nearMain; oy++) {
+          for (let ox = -1; ox <= 1; ox++) {
+            const nx = gx + ox, ny = gy + oy;
+            if (nx < 0 || nx >= cols || ny < 0 || ny >= rows) continue;
+            const id = labels[ny * cols + nx];
+            if (id && sizes[id] >= minSize) { nearMain = true; break; }
+          }
+        }
+        if (!nearMain) pixels[(y * width + x) * 4 + 3] = 0;
+      }
+    }
+    ctx.putImageData(image, 0, 0);
   }
 
   async destroy() {
