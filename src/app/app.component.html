@@ -15,6 +15,11 @@
   <section class="intro" *ngIf="store.experience()==='card'&&store.stage()==='intro'">
     <div class="eyebrow"><i></i> YOUR MOMENT. YOUR CARD.</div>
     <p class="intro-copy">Give us your best goal celebration. In 3 seconds, the camera records a two-second clip and turns it into your own Kora card.</p>
+    <div class="render-engine-picker" role="group" aria-label="Card renderer" style="display:flex;gap:12px;margin:18px 0;flex-wrap:wrap">
+      <button type="button" class="secondary" [attr.aria-pressed]="store.renderEngine()==='template'" (click)="store.setRenderEngine('template')">NEW KORA TEMPLATE</button>
+      <button type="button" class="secondary" [attr.aria-pressed]="store.renderEngine()==='legacy'" (click)="store.setRenderEngine('legacy')">CLASSIC CARDS</button>
+    </div>
+    <p class="privacy">High-quality local AI for photos (initial model download required). MediaPipe is used for video and as fallback.</p>
     <div class="player-fields">
       <label>PLAYER NAME<input [ngModel]="store.playerName()" (ngModelChange)="store.setName($event)" maxlength="18" placeholder="e.g. Cristiano"></label>
       <label>INSTAGRAM<input [ngModel]="store.instagramHandle()" (ngModelChange)="store.setInstagramHandle($event)" maxlength="24" placeholder="@username"></label>
@@ -74,6 +79,7 @@
         </button>
       </div>
     </div>
+    <button *ngIf="store.stage()==='camera'" type="button" class="secondary" (click)="store.captureCardPhoto(camera)" [disabled]="store.cardLoading()" style="margin:12px auto;display:block">TAKE PHOTO INSTEAD</button>
   </section>
 
   <section class="result" *ngIf="store.experience()==='card'&&store.stage()==='result'">
