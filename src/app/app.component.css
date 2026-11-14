@@ -37,3 +37,15 @@
   color:#fff;
   background:rgba(0,0,0,.7);
 }
+
+/* Dev-mode only A/B diagnostics; no customer workflow controls. */
+.model-compare-panel{position:fixed;inset:3vh 3vw;z-index:100;overflow:auto;background:#101010;color:#fff;border:2px solid #ed1c24;border-radius:14px;padding:18px;box-shadow:0 0 0 999px #000c}
+.model-compare-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.model-compare-heading strong{font-size:clamp(12px,2vw,20px)}
+.model-compare-panel p{margin:12px 0;font-size:13px;line-height:1.4}
+.model-compare-panel .secondary{padding:8px 12px}
+.model-compare-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:16px 0}
+.model-compare-grid>div{min-width:0;display:flex;flex-direction:column;gap:8px}
+.model-compare-grid canvas{display:block;width:100%;height:min(50vh,500px);object-fit:contain;background:#fff;border:1px solid #777}
+.model-compare-grid small{overflow-wrap:anywhere;color:#fff}
+@media(max-width:560px){.model-compare-panel{inset:2vh 2vw;padding:12px}.model-compare-grid{gap:8px}.model-compare-grid canvas{height:42vh}}
