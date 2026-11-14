@@ -52,19 +52,22 @@ export class TemplateCardRendererService {
   private sourceCanvas(media: HTMLVideoElement | HTMLImageElement, data: CardData): HTMLCanvasElement {
     const photo = media instanceof HTMLImageElement;
     const source = document.createElement('canvas');
-    source.width = photo ? 1024 : 512;
-    source.height = photo ? 1536 : 768;
     const sw = photo ? media.naturalWidth : media.videoWidth;
     const sh = photo ? media.naturalHeight : media.videoHeight;
     if (!sw || !sh) throw new Error('Camera frame is not ready');
-    const scale = Math.min(sw / source.width, sh / source.height);
-    const cropW = source.width * scale, cropH = source.height * scale;
+    // Preserve the whole photo and its context: tight pre-cropping makes
+    // person extraction less reliable, particularly with selfies.
+    const maxWidth = photo ? 1024 : 512;
+    const maxHeight = photo ? 1536 : 768;
+    const scale = Math.min(1, maxWidth / sw, maxHeight / sh);
+    source.width = Math.max(1, Math.round(sw * scale));
+    source.height = Math.max(1, Math.round(sh * scale));
     const ctx = source.getContext('2d')!;
     if (!photo && data.facingMode === 'user') {
       ctx.translate(source.width, 0);
       ctx.scale(-1, 1);
     }
-    ctx.drawImage(media, (sw - cropW) / 2, (sh - cropH) / 2, cropW, cropH, 0, 0, source.width, source.height);
+    ctx.drawImage(media, 0, 0, source.width, source.height);
     return source;
   }
 
@@ -100,6 +103,29 @@ export class TemplateCardRendererService {
     });
   }
 
+  private subjectBounds(person: HTMLCanvasElement) {
+    const { width, height } = person;
+    const data = person.getContext('2d', { willReadFrequently: true })!
+      .getImageData(0, 0, width, height).data;
+    let left = width, top = height, right = -1, bottom = -1;
+    // An alpha threshold ignores stray translucent pixels outside the player.
+    for (let y = 0; y < height; y += 3) {
+      for (let x = 0; x < width; x += 3) {
+        if (data[(y * width + x) * 4 + 3] < 100) continue;
+        left = Math.min(left, x); top = Math.min(top, y);
+        right = Math.max(right, x); bottom = Math.max(bottom, y);
+      }
+    }
+    if (right < left || bottom < top) throw new Error('No player detected');
+    const pad = 8;
+    const x = Math.max(0, left - pad), y = Math.max(0, top - pad);
+    return {
+      x, y,
+      width: Math.min(width - x, right - x + pad + 1),
+      height: Math.min(height - y, bottom - y + pad + 1),
+    };
+  }
+
   private compose(canvas: HTMLCanvasElement, person: HTMLCanvasElement, data: CardData) {
     const ctx = canvas.getContext('2d')!;
     ctx.clearRect(0, 0, this.width, this.height);
@@ -107,7 +133,16 @@ export class TemplateCardRendererService {
     // Only the transparent person is placed over the white portrait panel.
     ctx.save();
     ctx.beginPath(); ctx.rect(165, 342, 546, 519); ctx.clip();
-    ctx.drawImage(person, 265, 270, 457, 610);
+    // Position the actual extracted silhouette, not the complete source
+    // photograph. This prevents close-up phone photos from being overzoomed.
+    const bounds = this.subjectBounds(person);
+    const targetWidth = 430;
+    const targetHeight = 505;
+    const scale = Math.min(targetWidth / bounds.width, targetHeight / bounds.height);
+    const x = 495 - (bounds.width * scale) / 2;
+    const y = 860 - bounds.height * scale;
+    ctx.drawImage(person, bounds.x, bounds.y, bounds.width, bounds.height,
+      x, y, bounds.width * scale, bounds.height * scale);
     ctx.restore();
 
     ctx.fillStyle = '#eeedf1';
