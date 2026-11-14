@@ -153,6 +153,10 @@ export class TemplateCardRendererService {
       x, y, bounds.width * scale, bounds.height * scale);
     ctx.restore();
 
+    this.drawCardInformation(ctx, data);
+  }
+
+  private drawCardInformation(ctx: CanvasRenderingContext2D, data: CardData) {
     ctx.fillStyle = '#eeedf1';
     ctx.fillRect(193, 474, 155, 174);
     ctx.fillStyle = '#000';
@@ -182,6 +186,30 @@ export class TemplateCardRendererService {
       ctx.fillText(String(stats[i].value), 490, y, 52);
       ctx.fillText(stats[i].label, 560, y, 76);
     }
+  }
+
+  private drawLiveCardFrame(canvas: HTMLCanvasElement, video: HTMLVideoElement, data: CardData) {
+    const ctx = canvas.getContext('2d')!;
+    ctx.clearRect(0, 0, this.width, this.height);
+    ctx.drawImage(this.template, 0, 0, this.width, this.height);
+    const sw = video.videoWidth, sh = video.videoHeight;
+    if (sw && sh) {
+      // Show the whole camera image INSIDE the card window. This never
+      // artificially zooms the camera; opaque surroundings are only a preview.
+      const slot = {x:165,y:342,width:546,height:519};
+      const scale = Math.min(slot.width / sw, slot.height / sh);
+      const w = sw * scale, h = sh * scale;
+      const x = slot.x + (slot.width - w) / 2;
+      const y = slot.y + slot.height - h;
+      ctx.save();
+      ctx.beginPath(); ctx.rect(slot.x,slot.y,slot.width,slot.height); ctx.clip();
+      if (data.facingMode === 'user') {
+        ctx.translate(2*x+w,0); ctx.scale(-1,1);
+      }
+      ctx.drawImage(video,x,y,w,h);
+      ctx.restore();
+    }
+    this.drawCardInformation(ctx,data);
   }
 
   private async renderCutout(media: HTMLVideoElement | HTMLImageElement, canvas: HTMLCanvasElement, getData: () => CardData, generation: number, time: number, photo: boolean) {
@@ -229,8 +257,22 @@ export class TemplateCardRendererService {
     this.frameId = requestAnimationFrame(tick);
   }
 
-  async startLivePreview(_video: HTMLVideoElement, _canvas: HTMLCanvasElement, _getData: () => CardData) {
-    // Live preview is the raw camera feed; heavy AI runs only after taking a photo.
+  async startLivePreview(video: HTMLVideoElement, canvas: HTMLCanvasElement, getData: () => CardData) {
+    this.stop();
+    const generation = this.generation;
+    await Promise.all([this.loadTemplate(), document.fonts?.ready ?? Promise.resolve()]);
+    if (generation !== this.generation) return;
+    canvas.width = this.width;
+    canvas.height = this.height;
+    const paint = (time: number) => {
+      if (generation !== this.generation) return;
+      if (time - this.lastFrame >= 66 && video.readyState >= 2) {
+        this.lastFrame = time;
+        this.drawLiveCardFrame(canvas,video,getData());
+      }
+      this.frameId = requestAnimationFrame(paint);
+    };
+    this.frameId = requestAnimationFrame(paint);
   }
 
   async renderImage(image: HTMLImageElement, canvas: HTMLCanvasElement, getData: () => CardData) {
