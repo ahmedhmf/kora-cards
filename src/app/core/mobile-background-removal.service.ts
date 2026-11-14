@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { env, pipeline } from '@huggingface/transformers';
 
-/** High-quality still-photo background removal. Inference stays on the phone. */
+/** Portrait-specific background matting. All inference stays on the phone. */
 @Injectable({ providedIn: 'root' })
 export class MobileBackgroundRemovalService {
   private remover?: Awaited<ReturnType<typeof pipeline<'background-removal'>>>;
@@ -11,9 +11,9 @@ export class MobileBackgroundRemovalService {
     if (this.remover) return Promise.resolve(this.remover);
     if (this.pending) return this.pending;
     env.useBrowserCache = true;
-    this.pending = pipeline('background-removal', 'Orangebot/ormbg-ONNX', {
+    this.pending = pipeline('background-removal', 'Xenova/modnet', {
       device: 'wasm',
-      dtype: 'uint8',
+      dtype: 'fp32',
     }).then(model => (this.remover = model)).catch(error => {
       this.pending = undefined;
       throw error;
@@ -24,7 +24,8 @@ export class MobileBackgroundRemovalService {
   async isolate(source: HTMLCanvasElement): Promise<HTMLCanvasElement> {
     const model = await this.load();
     const results = await model([source.toDataURL('image/png')]);
-    if (!results.length) throw new Error('Background-removal model returned no image');
+    if (!results.length) throw new Error('Portrait AI returned no image');
+    if (results[0].channels !== 4) throw new Error('Portrait AI did not produce an RGBA cutout');
     const foreground = await results[0].toCanvas();
     const result = document.createElement('canvas');
     result.width = source.width;
@@ -52,9 +53,11 @@ export class MobileBackgroundRemovalService {
       }
     }
     const count = Math.ceil(result.width / step) * Math.ceil(result.height / step);
+    console.info('[KORA portrait matting]', { model: 'Xenova/modnet', width: result.width, height: result.height,
+      transparentPercent: Math.round(100 * backgroundPixels / count), opaquePercent: Math.round(100 * foregroundPixels / count) });
     if (backgroundPixels < count * .035 || foregroundPixels < count * .015 ||
         (edgeSamples > 0 && opaqueEdges / edgeSamples > .92)) {
-      throw new Error('AI did not separate the player from the background. Try a brighter photo with more space around the person.');
+      throw new Error('Portrait AI did not isolate the person. Please try a brighter photo with space around the head and shoulders.');
     }
     return result;
   }
