@@ -96,7 +96,8 @@ export class MobileBackgroundRemovalService {
       }
       sizes[label] = tail;
     }
-    const largest = Math.max(0, ...sizes);
+    let largest = 0;
+    for (const size of sizes) largest = Math.max(largest, size);
     // Remove only tiny disconnected high-confidence islands, not secondary limbs/hair.
     const minSize = Math.min(100, Math.max(8, Math.round(largest * .0015)));
     const erase = new Uint8Array(labels.length);
