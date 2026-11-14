@@ -45,6 +45,7 @@
       <label>SHIRT NUMBER<input [ngModel]="store.playerNumber()" (ngModelChange)="store.setNumber($event)" type="number" min="0" max="99" placeholder="10"></label>
     </div>
     <button class="primary" (click)="store.openCamera()"><span class="camera-icon">●</span> OPEN CAMERA <b>→</b></button>
+    <label *ngIf="store.renderEngine()==='template'" class="upload-button" style="display:block;text-align:center;padding:12px;border:1px solid #ed1c24">OR UPLOAD PHOTO<input type="file" accept="image/*" (change)="store.selectCardPhoto($event)" style="display:none"></label>
     <p class="privacy">{{store.renderEngine()==='template' ? 'Your picture is processed on this device.' : 'Your recording stays on this device.'}}</p>
     <div class="error" *ngIf="store.error()">{{store.error()}}</div>
   </section>
