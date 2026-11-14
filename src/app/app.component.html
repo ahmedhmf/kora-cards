@@ -120,7 +120,7 @@
         <button type="button" class="secondary" (click)="store.toggleComparison()" [disabled]="store.comparisonBusy()">CLOSE</button>
       </header>
       <p>Both models receive the identical source photo. White is only the viewing backdrop; no KORA card cropping or mask cleanup is applied.</p>
-      <button type="button" class="secondary" (click)="store.runComparison(replayImage,modnetTest,ormbgTest)" [disabled]="store.comparisonBusy()">{{store.comparisonBusy() ? 'PROCESSING BOTH MODELS…' : 'RUN MODNET VS ORMBG'}}</button>
+      <button type="button" class="secondary" (click)="store.runComparison(modnetTest,ormbgTest)" [disabled]="store.comparisonBusy()">{{store.comparisonBusy() ? 'PROCESSING BOTH MODELS…' : 'RUN MODNET VS ORMBG'}}</button>
       <div class="model-compare-grid">
         <div><strong>MODNet FP32</strong><canvas #modnetTest aria-label="MODNet raw output"></canvas><small>{{store.comparisonModnet() || 'Not tested'}}</small></div>
         <div><strong>ORMBG INT8</strong><canvas #ormbgTest aria-label="ORMBG raw output"></canvas><small>{{store.comparisonOrmbg() || 'Not tested'}}</small></div>
