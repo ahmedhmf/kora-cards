@@ -17,43 +17,6 @@ export class TemplateCardRendererService {
   private generation = 0;
   private busy = false;
   private lastFrame = 0;
-  private cutout?: HTMLCanvasElement;
-  private originalCutout?: HTMLCanvasElement;
-  private output?: HTMLCanvasElement;
-  private outputData?: CardData;
-  private placement?: { x:number; y:number; width:number; height:number; sx:number; sy:number; sw:number; sh:number };
-
-  eraseAt(cardX: number, cardY: number, radius = 30): void {
-    const p = this.placement, cutout = this.cutout;
-    if (!p || !cutout || !this.output || !this.outputData) return;
-    if (cardX < 165 || cardX > 711 || cardY < 342 || cardY > 861) return;
-    const px = p.sx + (cardX - p.x) / p.width * p.sw;
-    const py = p.sy + (cardY - p.y) / p.height * p.sh;
-    if (!Number.isFinite(px) || !Number.isFinite(py)) return;
-    const rr = Math.max(4, Math.min(120, radius)) * p.sw / p.width;
-    const ctx = cutout.getContext('2d')!;
-    ctx.save();
-    ctx.globalCompositeOperation = 'destination-out';
-    ctx.beginPath(); ctx.arc(px, py, rr, 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
-    this.compose(this.output, cutout, this.outputData);
-  }
-
-  restoreCutout(): void {
-    if (!this.originalCutout || !this.cutout || !this.output || !this.outputData) return;
-    const ctx = this.cutout.getContext('2d')!;
-    ctx.clearRect(0, 0, this.cutout.width, this.cutout.height);
-    ctx.drawImage(this.originalCutout, 0, 0);
-    this.compose(this.output, this.cutout, this.outputData);
-  }
-
-  private copyCanvas(source: HTMLCanvasElement): HTMLCanvasElement {
-    const result = document.createElement('canvas');
-    result.width = source.width; result.height = source.height;
-    result.getContext('2d')!.drawImage(source, 0, 0);
-    return result;
-  }
-
   private loadTemplate(): Promise<void> {
     if (!this.templatePromise) {
       this.templatePromise = new Promise<void>((resolve, reject) => {
@@ -171,16 +134,12 @@ export class TemplateCardRendererService {
     ctx.beginPath(); ctx.rect(165, 342, 546, 519); ctx.clip();
     // Position the actual extracted silhouette, not the complete source
     // photograph. This prevents close-up phone photos from being overzoomed.
-    const bounds = this.placement
-      ? { x: this.placement.sx, y: this.placement.sy, width: this.placement.sw, height: this.placement.sh }
-      : this.subjectBounds(person);
+    const bounds = this.subjectBounds(person);
     const targetWidth = 430;
     const targetHeight = 505;
     const scale = Math.min(targetWidth / bounds.width, targetHeight / bounds.height);
     const x = 495 - (bounds.width * scale) / 2;
     const y = 860 - bounds.height * scale;
-    this.placement = { x, y, width: bounds.width * scale, height: bounds.height * scale,
-      sx: bounds.x, sy: bounds.y, sw: bounds.width, sh: bounds.height };
     ctx.drawImage(person, bounds.x, bounds.y, bounds.width, bounds.height,
       x, y, bounds.width * scale, bounds.height * scale);
     ctx.restore();
@@ -229,16 +188,7 @@ export class TemplateCardRendererService {
       } else {
         person = await this.segment(source, time);
       }
-      if (generation === this.generation) {
-        if (photo) {
-          this.cutout = person;
-          this.originalCutout = this.copyCanvas(person);
-          this.output = canvas;
-          this.outputData = getData();
-          this.placement = undefined;
-        }
-        this.compose(canvas, person, getData());
-      }
+      if (generation === this.generation) this.compose(canvas, person, getData());
     } catch (e) {
       console.error('KORA player cutout failed', e);
       // Never present the original background as a successful cutout.
@@ -289,11 +239,6 @@ export class TemplateCardRendererService {
     this.frameId = undefined;
     this.busy = false;
     this.lastFrame = 0;
-    this.cutout = undefined;
-    this.originalCutout = undefined;
-    this.output = undefined;
-    this.outputData = undefined;
-    this.placement = undefined;
   }
 
   destroy() {
