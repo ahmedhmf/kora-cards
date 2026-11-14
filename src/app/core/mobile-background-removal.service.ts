@@ -84,7 +84,7 @@ export class MobileBackgroundRemovalService {
         // model on first use, which is useful but not a pure inference benchmark.
         const remover = modelName === 'modnet'
           ? await this.load()
-          : (temp = await pipeline('background-removal', 'Orangebot/ormbg-ONNX', {
+          : (temp = await pipeline<'background-removal'>('background-removal', 'Orangebot/ormbg-ONNX', {
               device: 'wasm', dtype: 'uint8',
             }));
         const outputs = await remover([input]);
