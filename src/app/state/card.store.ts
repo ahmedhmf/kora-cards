@@ -14,12 +14,13 @@ export type Experience='home'|'card'|'filter';
 export type FilterStage='source'|'camera'|'editor';
 export type CardDesign='blue-gold'|'red-black'|'white-red'|'mono-red';
 export type RenderEngine='legacy'|'template';
-interface CardState{experience:Experience;stage:CardStage;filterStage:FilterStage;facingMode:FacingMode;filterImageUrl:string;filterProcessed:boolean;cardMediaType:'image'|'video';countdown:number;error:string;isSharing:boolean;driveAvailable:boolean;driveUploading:boolean;driveMessage:string;cardLoading:boolean;playerName:string;instagramHandle:string;playerPosition:string;playerNumber:number;cardDesign:CardDesign;renderEngine:RenderEngine;replayUrl:string;mediaStream:MediaStream|null;matchedPlayer:RatedPlayer}
-const initialState:CardState={experience:'card',stage:'intro',filterStage:'source',facingMode:'environment',filterImageUrl:'',filterProcessed:false,cardMediaType:'video',countdown:3,error:'',isSharing:false,driveAvailable:!GOOGLE_DRIVE_CONFIG.clientId.startsWith('PASTE_'),driveUploading:false,driveMessage:'',cardLoading:false,playerName:'',instagramHandle:'',playerPosition:'ST',playerNumber:10,cardDesign:'blue-gold',renderEngine:'legacy',replayUrl:'',mediaStream:null,matchedPlayer:randomPlayer('ST')};
+interface CardState{experience:Experience;stage:CardStage;filterStage:FilterStage;facingMode:FacingMode;filterImageUrl:string;filterProcessed:boolean;cardMediaType:'image'|'video';countdown:number;error:string;isSharing:boolean;driveAvailable:boolean;driveUploading:boolean;driveMessage:string;cardLoading:boolean;playerName:string;instagramHandle:string;playerPosition:string;playerNumber:number;cardDesign:CardDesign;renderEngine:RenderEngine;eraseMode:boolean;replayUrl:string;mediaStream:MediaStream|null;matchedPlayer:RatedPlayer}
+const initialState:CardState={experience:'card',stage:'intro',filterStage:'source',facingMode:'environment',filterImageUrl:'',filterProcessed:false,cardMediaType:'video',countdown:3,error:'',isSharing:false,driveAvailable:!GOOGLE_DRIVE_CONFIG.clientId.startsWith('PASTE_'),driveUploading:false,driveMessage:'',cardLoading:false,playerName:'',instagramHandle:'',playerPosition:'ST',playerNumber:10,cardDesign:'blue-gold',renderEngine:'legacy',eraseMode:false,replayUrl:'',mediaStream:null,matchedPlayer:randomPlayer('ST')};
 export const CardStore=signalStore(
  {providedIn:'root'},withState(initialState),
  withMethods((store,camera=inject(CameraService),renderer=inject(CardRendererService),templateRenderer=inject(TemplateCardRendererService),exporter=inject(CardExportService),filter=inject(PhotoFilterService),drive=inject(GoogleDriveService))=>{
   let clipUrl='',filterUrl='',flowVersion=0;
+  let erasingPointer:number|null=null;
   const delay=(ms:number)=>new Promise<void>(resolve=>setTimeout(resolve,ms));
   const openCurrentCamera=async()=>{
    try{
@@ -37,7 +38,25 @@ export const CardStore=signalStore(
    setPosition(playerPosition:string){patchState(store,{playerPosition,matchedPlayer:randomPlayer(playerPosition,store.matchedPlayer().name)})},
    setNumber(value:number|string){const number=Math.max(0,Math.min(99,Number(value)||0));patchState(store,{playerNumber:number})},
    setCardDesign(cardDesign:CardDesign){patchState(store,{cardDesign})},
-   setRenderEngine(renderEngine:RenderEngine){renderer.stop();templateRenderer.stop();patchState(store,{renderEngine})},
+   setRenderEngine(renderEngine:RenderEngine){renderer.stop();templateRenderer.stop();patchState(store,{renderEngine,eraseMode:false})},
+   toggleEraseMode(){if(store.renderEngine()!=='template')return;erasingPointer=null;patchState(store,{eraseMode:!store.eraseMode()})},
+   startErasing(event:PointerEvent,canvas:HTMLCanvasElement){
+    if(!store.eraseMode()||store.renderEngine()!=='template'||store.cardLoading()||store.error())return;
+    erasingPointer=event.pointerId;
+    canvas.setPointerCapture(event.pointerId);
+    this.eraseCardPoint(event,canvas);
+   },
+   eraseCardPoint(event:PointerEvent,canvas:HTMLCanvasElement){
+    if(!store.eraseMode()||erasingPointer!==event.pointerId)return;
+    event.preventDefault();
+    const rect=canvas.getBoundingClientRect();
+    if(!rect.width||!rect.height)return;
+    const x=(event.clientX-rect.left)*canvas.width/rect.width;
+    const y=(event.clientY-rect.top)*canvas.height/rect.height;
+    templateRenderer.eraseAt(x,y,28);
+   },
+   finishErasing(){erasingPointer=null},
+   resetErase(){templateRenderer.restoreCutout()},
    setFacingMode(facingMode:FacingMode){
     if(store.facingMode()===facingMode)return;
     patchState(store,{facingMode});
@@ -58,7 +77,7 @@ export const CardStore=signalStore(
    selectCardPhoto(event:Event){const input=event.target as HTMLInputElement;const file=input.files?.[0];if(!file)return;input.value='';if(!file.type.startsWith('image/')){patchState(store,{error:'Please select a photo.'});return;}flowVersion++;renderer.stop();templateRenderer.stop();camera.stop();if(clipUrl)URL.revokeObjectURL(clipUrl);clipUrl=URL.createObjectURL(file);patchState(store,{cardMediaType:'image',replayUrl:clipUrl,stage:'result',mediaStream:null,error:''});},
    async startSequence(){if(store.renderEngine()==='template'){patchState(store,{error:'New KORA template supports photos only. Use the photo shutter.'});return;}const current=++flowVersion;patchState(store,{stage:'countdown'});for(let n=3;n>0;n--){if(current!==flowVersion)return;patchState(store,{countdown:n});await delay(1000)}if(current!==flowVersion)return;patchState(store,{stage:'recording'});try{const blob=await camera.record(2000);if(current!==flowVersion)return;camera.stop();if(clipUrl)URL.revokeObjectURL(clipUrl);clipUrl=URL.createObjectURL(blob);patchState(store,{replayUrl:clipUrl,cardMediaType:'video',stage:'result',mediaStream:null})}catch{if(current===flowVersion)patchState(store,{error:'Recording failed. Please try again.',stage:'camera'})}},
    async renderCard(video:HTMLVideoElement,canvas:HTMLCanvasElement){if(store.renderEngine()==='template'){patchState(store,{error:'Video is only available in Classic Cards.'});return;}patchState(store,{cardLoading:true,error:''});try{await (store.renderEngine()==='template'?templateRenderer:renderer).start(video,canvas,()=>({name:store.playerName(),instagramHandle:store.instagramHandle(),position:store.playerPosition(),number:store.playerNumber(),design:store.cardDesign(),match:store.matchedPlayer(),facingMode:store.facingMode()}))}catch(error){console.error(error);patchState(store,{error:'Card renderer could not start. Please reload.'})}finally{patchState(store,{cardLoading:false})}},
-   async renderCardPhoto(image:HTMLImageElement,canvas:HTMLCanvasElement){patchState(store,{cardLoading:true,error:''});try{await (store.renderEngine()==='template'?templateRenderer:renderer).renderImage(image,canvas,()=>({name:store.playerName(),instagramHandle:store.instagramHandle(),position:store.playerPosition(),number:store.playerNumber(),design:store.cardDesign(),match:store.matchedPlayer(),facingMode:store.facingMode()}))}catch(error){console.error(error);patchState(store,{error:store.renderEngine()==='template'?(error instanceof Error ? error.message : 'AI background removal failed. Try a brighter photo.'):'Card renderer could not start. Please reload.'})}finally{patchState(store,{cardLoading:false})}},
+   async renderCardPhoto(image:HTMLImageElement,canvas:HTMLCanvasElement){erasingPointer=null;patchState(store,{cardLoading:true,eraseMode:false,error:''});try{await (store.renderEngine()==='template'?templateRenderer:renderer).renderImage(image,canvas,()=>({name:store.playerName(),instagramHandle:store.instagramHandle(),position:store.playerPosition(),number:store.playerNumber(),design:store.cardDesign(),match:store.matchedPlayer(),facingMode:store.facingMode()}))}catch(error){console.error(error);patchState(store,{error:store.renderEngine()==='template'?(error instanceof Error ? error.message : 'AI background removal failed. Try a brighter photo.'):'Card renderer could not start. Please reload.'})}finally{patchState(store,{cardLoading:false})}},
    async share(canvas:HTMLCanvasElement){patchState(store,{isSharing:true});try{await exporter.share(canvas,store.playerName())}catch(error){if((error as DOMException).name!=='AbortError')patchState(store,{error:'Sharing failed. Please download the card instead.'})}finally{patchState(store,{isSharing:false})}},
    async download(canvas:HTMLCanvasElement){await exporter.download(canvas,store.playerName())},
    async startLivePreview(video:HTMLVideoElement,canvas:HTMLCanvasElement){if(store.renderEngine()==='template')return;try{await (store.renderEngine()==='template'?templateRenderer:renderer).startLivePreview(video,canvas,()=>({name:store.playerName(),instagramHandle:store.instagramHandle(),position:store.playerPosition(),number:store.playerNumber(),design:store.cardDesign(),match:store.matchedPlayer(),facingMode:store.facingMode()}))}catch(e){console.error(e)}},
@@ -77,7 +96,7 @@ export const CardStore=signalStore(
    async saveFilterVideoToDrive(canvas:HTMLCanvasElement){await saveVideoToDrive(canvas,'kora-filter')},
    resetFilter(){filter.stop();camera.stop();if(filterUrl){URL.revokeObjectURL(filterUrl);filterUrl=''}patchState(store,{filterStage:'source',filterImageUrl:'',filterProcessed:false,mediaStream:null,error:''})},
    async retake(){renderer.stop();templateRenderer.stop();if(clipUrl){URL.revokeObjectURL(clipUrl);clipUrl=''}patchState(store,{replayUrl:''});try{const mediaStream=await camera.open(store.facingMode());patchState(store,{stage:'camera',mediaStream})}catch{patchState(store,{error:'Camera access is needed.',stage:'intro'})}},
-   resetToHome(){flowVersion++;renderer.stop();templateRenderer.stop();filter.stop();camera.stop();if(clipUrl){URL.revokeObjectURL(clipUrl);clipUrl=''}if(filterUrl){URL.revokeObjectURL(filterUrl);filterUrl=''}patchState(store,{...initialState,matchedPlayer:randomPlayer('ST')})},
+   resetToHome(){erasingPointer=null;flowVersion++;renderer.stop();templateRenderer.stop();filter.stop();camera.stop();if(clipUrl){URL.revokeObjectURL(clipUrl);clipUrl=''}if(filterUrl){URL.revokeObjectURL(filterUrl);filterUrl=''}patchState(store,{...initialState,matchedPlayer:randomPlayer('ST')})},
    destroy(){renderer.destroy();templateRenderer.destroy();filter.destroy();camera.stop();drive.disconnect();if(clipUrl)URL.revokeObjectURL(clipUrl);if(filterUrl)URL.revokeObjectURL(filterUrl)}
   };
   async function saveVideoToDrive(canvas:HTMLCanvasElement,name:string){
