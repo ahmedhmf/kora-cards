@@ -64,7 +64,7 @@ export class MobileBackgroundRemovalService {
   }
 
   /**
-   * Development-only A/B test: both models get the exact same input and neither
+   * Developer A/B test (enabled in dev mode or with the opt-in URL flag): both models get the exact same input and neither
    * receives KORA's component cleanup, mask shaping or card crop.
    * ORMBG is disposed after its turn to reduce mobile memory pressure.
    */
@@ -72,7 +72,9 @@ export class MobileBackgroundRemovalService {
     source: HTMLCanvasElement,
     onResult: (model: 'modnet' | 'ormbg', result: {canvas: HTMLCanvasElement; milliseconds: number; transparentPercent: number} | {error: string}) => void,
   ): Promise<void> {
-    if (!isDevMode()) throw new Error('Model comparisons are only available in development');
+    if (!isDevMode() && (typeof window === 'undefined' || new URLSearchParams(window.location.search).get('koraCompare') !== '1')) {
+      throw new Error('Model comparison requires development mode or ?koraCompare=1');
+    }
     env.useBrowserCache = true;
     const models = ['modnet', 'ormbg'] as const;
     const input = source.toDataURL('image/png');
