@@ -49,3 +49,9 @@
 .model-compare-grid canvas{display:block;width:100%;height:min(50vh,500px);object-fit:contain;background:#fff;border:1px solid #777}
 .model-compare-grid small{overflow-wrap:anywhere;color:#fff}
 @media(max-width:560px){.model-compare-panel{inset:2vh 2vw;padding:12px}.model-compare-grid{gap:8px}.model-compare-grid canvas{height:42vh}}
+
+/* Visible only in development: model A/B test launcher in the result action bar. */
+.result-action-bar .compare-action-btn{width:66px;min-width:66px;height:60px;flex-direction:column;gap:2px;border-color:rgba(255,255,255,.35)}
+.result-action-bar .compare-action-btn svg{width:23px;height:23px}
+.result-action-bar .compare-action-label{font:800 9px "Chakra Petch",sans-serif;letter-spacing:.03em}
+.result-action-bar .compare-action-btn[aria-pressed="true"]{border-color:#ed1c24;background:rgba(237,28,36,.3)}
