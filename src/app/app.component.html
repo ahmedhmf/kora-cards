@@ -14,12 +14,12 @@
 
   <section class="intro" *ngIf="store.experience()==='card'&&store.stage()==='intro'">
     <div class="eyebrow"><i></i> YOUR MOMENT. YOUR CARD.</div>
-    <p class="intro-copy">Give us your best goal celebration. In 3 seconds, the camera records a two-second clip and turns it into your own Kora card.</p>
+    <p class="intro-copy">{{store.renderEngine()==='template' ? 'Take a photo. Our on-device AI removes the background and places you on the new KORA card.' : 'Give us your best goal celebration. In 3 seconds, the camera records a two-second clip and turns it into your own Kora card.'}}</p>
     <div class="render-engine-picker" role="group" aria-label="Card renderer" style="display:flex;gap:12px;margin:18px 0;flex-wrap:wrap">
       <button type="button" class="secondary" [attr.aria-pressed]="store.renderEngine()==='template'" (click)="store.setRenderEngine('template')">NEW KORA TEMPLATE</button>
       <button type="button" class="secondary" [attr.aria-pressed]="store.renderEngine()==='legacy'" (click)="store.setRenderEngine('legacy')">CLASSIC CARDS</button>
     </div>
-    <p class="privacy">High-quality local AI for photos (initial model download required). MediaPipe is used for video and as fallback.</p>
+    <p class="privacy">{{store.renderEngine()==='template' ? 'NEW TEMPLATE: photos only. High-quality local ORMBG AI (initial download required). Classic Cards retain video.' : 'CLASSIC CARDS: original video recording experience.'}}</p>
     <div class="player-fields">
       <label>PLAYER NAME<input [ngModel]="store.playerName()" (ngModelChange)="store.setName($event)" maxlength="18" placeholder="e.g. Cristiano"></label>
       <label>INSTAGRAM<input [ngModel]="store.instagramHandle()" (ngModelChange)="store.setInstagramHandle($event)" maxlength="24" placeholder="@username"></label>
@@ -45,15 +45,15 @@
       <label>SHIRT NUMBER<input [ngModel]="store.playerNumber()" (ngModelChange)="store.setNumber($event)" type="number" min="0" max="99" placeholder="10"></label>
     </div>
     <button class="primary" (click)="store.openCamera()"><span class="camera-icon">●</span> OPEN CAMERA <b>→</b></button>
-    <p class="privacy">Your recording stays on this device.</p>
+    <p class="privacy">{{store.renderEngine()==='template' ? 'Your picture is processed on this device.' : 'Your recording stays on this device.'}}</p>
     <div class="error" *ngIf="store.error()">{{store.error()}}</div>
   </section>
 
   <section class="capture" *ngIf="store.experience()==='card'&&(store.stage()==='camera'||store.stage()==='countdown'||store.stage()==='recording')">
     <div class="live-card-stage">
       <div class="live-card-frame">
-        <video #camera autoplay muted playsinline [appMediaStream]="store.mediaStream()" [class.mirrored]="store.facingMode()==='user'" (loadeddata)="store.startLivePreview(camera, liveCameraCanvas)" class="processing-video"></video>
-        <canvas #liveCameraCanvas class="live-card-canvas" width="1080" height="1920" aria-label="Live Card Preview"></canvas>
+        <video #camera autoplay muted playsinline [appMediaStream]="store.mediaStream()" [class.mirrored]="store.facingMode()==='user'" [class.template-photo-preview]="store.renderEngine()==='template'" (loadeddata)="store.startLivePreview(camera, liveCameraCanvas)" class="processing-video"></video>
+        <canvas #liveCameraCanvas [style.display]="store.renderEngine()==='template' ? 'none' : 'block'" class="live-card-canvas" width="1080" height="1920" aria-label="Live Card Preview"></canvas>
         <div class="count" *ngIf="store.stage()==='countdown'"><strong>{{store.countdown()}}</strong><span>GET READY</span></div>
         <div class="recording" *ngIf="store.stage()==='recording'"><i></i> CELEBRATE!</div>
       </div>
@@ -66,7 +66,7 @@
           </svg>
         </button>
 
-        <button class="iphone-shutter-button" type="button" (click)="store.startSequence()" [disabled]="store.cardLoading()" aria-label="Record Video">
+        <button class="iphone-shutter-button" type="button" (click)="store.renderEngine()==='template' ? store.captureCardPhoto(camera) : store.startSequence()" [disabled]="store.cardLoading()" [attr.aria-label]="store.renderEngine()==='template' ? 'Take Photo' : 'Record Video'">
           <span class="shutter-outer-ring">
             <span class="shutter-inner-circle"></span>
           </span>
@@ -79,7 +79,7 @@
         </button>
       </div>
     </div>
-    <button *ngIf="store.stage()==='camera'" type="button" class="secondary" (click)="store.captureCardPhoto(camera)" [disabled]="store.cardLoading()" style="margin:12px auto;display:block">TAKE PHOTO INSTEAD</button>
+    <button *ngIf="store.stage()==='camera' && store.renderEngine()==='legacy'" type="button" class="secondary" (click)="store.captureCardPhoto(camera)" [disabled]="store.cardLoading()" style="margin:12px auto;display:block">TAKE PHOTO INSTEAD</button>
   </section>
 
   <section class="result" *ngIf="store.experience()==='card'&&store.stage()==='result'">
@@ -91,7 +91,7 @@
     </div>
 
     <div class="result-action-bar" *ngIf="!store.cardLoading()">
-      <button class="icon-action-btn" type="button" (click)="store.downloadCardVideo(cardCanvas)" [disabled]="store.isSharing()||store.driveUploading()" aria-label="Save Video" title="Save Video">
+      <button class="icon-action-btn" type="button" (click)="store.renderEngine()==='template' ? store.download(cardCanvas) : store.downloadCardVideo(cardCanvas)" [disabled]="store.isSharing()||store.driveUploading()" [attr.aria-label]="store.renderEngine()==='template' ? 'Save Photo' : 'Save Video'" [attr.title]="store.renderEngine()==='template' ? 'Save Photo' : 'Save Video'">
         <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
           <polyline points="7 10 12 15 17 10"/>
@@ -107,6 +107,7 @@
       </button>
     </div>
 
+    <button *ngIf="store.renderEngine()==='template' && !store.cardLoading()" type="button" class="secondary" (click)="store.share(cardCanvas)">SHARE PHOTO</button>
     <div class="error" *ngIf="store.error()">{{store.error()}}</div>
   </section>
 
