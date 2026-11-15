@@ -293,11 +293,27 @@ export class TemplateCardRendererService {
     if (video.readyState >= 2) this.drawLiveCardFrame(canvas, video, getData());
 
     let segmenterReady = false;
+    let failures = 0;
+    let segmentationUnavailable = false;
+    const timeoutId = window.setTimeout(() => {
+      if (generation !== this.generation || segmenterReady) return;
+      segmentationUnavailable = true;
+      onFraming?.('unavailable', 'Position guide unavailable — photo still works');
+    }, 12000);
     void this.loadSegmenter().then(() => {
-      if (generation === this.generation) segmenterReady = true;
+      window.clearTimeout(timeoutId);
+      if (generation === this.generation) {
+        segmenterReady = true;
+        segmentationUnavailable = false;
+        failures = 0;
+      }
     }).catch(error => {
+      window.clearTimeout(timeoutId);
       console.warn('KORA live segmentation unavailable; retaining camera framing guide', error);
-      if (generation === this.generation) onFraming?.('unavailable', 'Position guide unavailable — photo still works');
+      if (generation === this.generation) {
+        segmentationUnavailable = true;
+        onFraming?.('unavailable', 'Position guide unavailable — photo still works');
+      }
     });
 
     const paint = (time: number) => {
@@ -329,6 +345,8 @@ export class TemplateCardRendererService {
                 height: blend(prev.height, next.height),
               } : next;
               this.previewBounds = bounds;
+              failures = 0;
+              segmentationUnavailable = false;
               const advice = this.framingAdvice(next, source.width, source.height);
               this.alignedFrames = advice ? 0 : Math.min(4, this.alignedFrames + 1);
               onFraming?.(advice ? 'adjust' : this.alignedFrames >= 3 ? 'ready' : 'checking',
@@ -339,6 +357,11 @@ export class TemplateCardRendererService {
               if (time - this.lastPreviewWarning > 5000) {
                 console.warn('Live person preview skipped; retaining camera guide', error);
                 this.lastPreviewWarning = time;
+              }
+              failures++;
+              if (failures >= 3 && !segmentationUnavailable) {
+                segmentationUnavailable = true;
+                onFraming?.('unavailable', 'Position guide unavailable — photo still works');
               }
               this.drawLiveCardFrame(canvas, video, getData());
             }).finally(() => {
