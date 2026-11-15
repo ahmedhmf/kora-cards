@@ -104,7 +104,6 @@
       </button>
     </div>
 
-    <button *ngIf="store.renderEngine()==='template' && !store.cardLoading() && !store.error()" type="button" class="secondary" (click)="store.share(cardCanvas)">SHARE PHOTO</button>
     <div class="error" *ngIf="store.error()">{{store.error()}}</div>
     <button *ngIf="store.error() && store.renderEngine()==='template'" type="button" class="secondary" (click)="store.retake()">RETAKE PHOTO</button>
   </section>
