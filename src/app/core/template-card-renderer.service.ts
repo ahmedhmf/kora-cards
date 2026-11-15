@@ -20,6 +20,24 @@ export class TemplateCardRendererService {
   private previewBounds?: {x:number;y:number;width:number;height:number};
   private lastSegmentationTime = -1;
   private lastPreviewWarning = 0;
+  private alignedFrames = 0;
+
+  /** The mask is used only to guide camera framing; ORMBG remains the still-photo model. */
+  private framingAdvice(bounds: {x:number;y:number;width:number;height:number}, width:number, height:number): string {
+    const left = bounds.x / width;
+    const right = (bounds.x + bounds.width) / width;
+    const top = bounds.y / height;
+    const relativeWidth = bounds.width / width;
+    const relativeHeight = bounds.height / height;
+    const center = (left + right) / 2;
+    if (top < .035) return 'Move back — keep your whole head visible';
+    if (top > .28 || relativeHeight < .43 || relativeWidth < .23) return 'Move closer to the camera';
+    if (relativeWidth > .87 || relativeHeight > .97 || left < .025 || right > .975) return 'Move back — keep your arms in frame';
+    if (center < .39) return 'Move slightly right';
+    if (center > .61) return 'Move slightly left';
+    return '';
+  }
+
   private loadTemplate(): Promise<void> {
     if (!this.templatePromise) {
       this.templatePromise = new Promise<void>((resolve, reject) => {
@@ -260,9 +278,10 @@ export class TemplateCardRendererService {
     this.frameId = requestAnimationFrame(tick);
   }
 
-  async startLivePreview(video: HTMLVideoElement, canvas: HTMLCanvasElement, getData: () => CardData) {
+  async startLivePreview(video: HTMLVideoElement, canvas: HTMLCanvasElement, getData: () => CardData, onFraming?: (state: 'checking' | 'adjust' | 'ready' | 'unavailable', hint: string) => void) {
     this.stop();
     const generation = this.generation;
+    onFraming?.('checking', 'Finding player…');
     // Draw the card immediately. If the lightweight model isn't ready,
     // keep the raw framed view until segmentation becomes available.
     await Promise.all([this.loadTemplate(), document.fonts?.ready ?? Promise.resolve()]);
@@ -276,6 +295,7 @@ export class TemplateCardRendererService {
       if (generation === this.generation) segmenterReady = true;
     }).catch(error => {
       console.warn('KORA live segmentation unavailable; retaining camera framing guide', error);
+      if (generation === this.generation) onFraming?.('unavailable', 'Position guide unavailable — photo still works');
     });
 
     const paint = (time: number) => {
@@ -307,6 +327,10 @@ export class TemplateCardRendererService {
                 height: blend(prev.height, next.height),
               } : next;
               this.previewBounds = bounds;
+              const advice = this.framingAdvice(next, source.width, source.height);
+              this.alignedFrames = advice ? 0 : Math.min(4, this.alignedFrames + 1);
+              onFraming?.(advice ? 'adjust' : this.alignedFrames >= 3 ? 'ready' : 'checking',
+                advice || (this.alignedFrames >= 3 ? 'Perfect position — take your photo!' : 'Hold still…'));
               this.compose(canvas, person, getData(), bounds);
             }).catch(error => {
               if (generation !== this.generation) return;
@@ -349,6 +373,7 @@ export class TemplateCardRendererService {
     this.busy = false;
     this.lastFrame = 0;
     this.previewBounds = undefined;
+    this.alignedFrames = 0;
     this.lastPreviewWarning = 0;
     // Preserve the last MediaPipe timestamp across preview restarts.
   }
