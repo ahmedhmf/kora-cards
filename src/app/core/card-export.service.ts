@@ -27,6 +27,49 @@ export class CardExportService {
     this.downloadBlob(blob, filename);
   }
 
+  /**
+   * Opens a print-only copy of the finished PNG, not the app's screen.
+   * The system print dialog chooses the printer; a PWA cannot silently print.
+   */
+  printCard(canvas: HTMLCanvasElement): void {
+    if (!canvas.width || !canvas.height) throw new Error('Card is not ready to print');
+    // Open synchronously inside the shutter toolbar click to avoid popup blocking.
+    const preview = window.open('', '_blank');
+    if (!preview) throw new Error('Allow pop-ups to print your card, or save the image and print it from Photos.');
+    try {
+      const png = canvas.toDataURL('image/png');
+      const doc = preview.document;
+      doc.open();
+      doc.write(`<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Print KORA Card</title><style>
+  html,body{margin:0;background:#fff;color:#111;font-family:system-ui,sans-serif}
+  .toolbar{padding:12px;text-align:center}
+  button{font:600 16px system-ui,sans-serif;padding:12px 28px;cursor:pointer}
+  .page{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 70px)}
+  img{display:block;max-width:90vw;max-height:calc(100vh - 90px);width:auto;height:auto;object-fit:contain}
+  @page{size:auto;margin:10mm}
+  @media print{
+    .toolbar{display:none}
+    html,body{margin:0;background:#fff}
+    .page{height:calc(100vh - 20mm);min-height:0;page-break-after:avoid}
+    img{max-width:100%;max-height:100%;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  }
+</style></head>
+<body><div class="toolbar"><button id="print-button" type="button">Print card</button></div>
+<div class="page"><img id="print-image" alt="KORA player card" src="${png}"></div></body></html>`);
+      doc.close();
+      const print = () => { preview.focus(); preview.print(); };
+      doc.getElementById('print-button')?.addEventListener('click', print);
+      const image = doc.getElementById('print-image') as HTMLImageElement | null;
+      if (image?.complete) preview.setTimeout(print, 100);
+      else image?.addEventListener('load', () => preview.setTimeout(print, 100), {once:true});
+    } catch (error) {
+      preview.close();
+      throw error;
+    }
+  }
+
   async download(canvas: HTMLCanvasElement, name: string) {
     this.downloadBlob(await this.toBlob(canvas), (name || 'star').toLowerCase().replace(/\s+/g, '-'));
   }
