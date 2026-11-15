@@ -62,6 +62,12 @@ export const CardStore=signalStore(
    async renderCardPhoto(image:HTMLImageElement,canvas:HTMLCanvasElement){patchState(store,{cardLoading:true,error:''});try{await (store.renderEngine()==='template'?templateRenderer:renderer).renderImage(image,canvas,()=>({name:store.playerName(),instagramHandle:store.instagramHandle(),position:store.playerPosition(),number:store.playerNumber(),design:store.cardDesign(),match:store.matchedPlayer(),facingMode:store.facingMode()}))}catch(error){console.error(error);patchState(store,{error:store.renderEngine()==='template'?(error instanceof Error ? error.message : 'AI background removal failed. Try a brighter photo.'):'Card renderer could not start. Please reload.'})}finally{patchState(store,{cardLoading:false})}},
    async share(canvas:HTMLCanvasElement){patchState(store,{isSharing:true});try{await exporter.share(canvas,store.playerName())}catch(error){if((error as DOMException).name!=='AbortError')patchState(store,{error:'Sharing failed. Please download the card instead.'})}finally{patchState(store,{isSharing:false})}},
    async download(canvas:HTMLCanvasElement){await exporter.download(canvas,store.playerName())},
+   printCard(canvas:HTMLCanvasElement){
+    if(store.cardLoading()||store.error())return;
+    try{exporter.printCard(canvas)}catch(error){
+      patchState(store,{error:error instanceof Error?error.message:'Unable to open the print dialog. Save the card and print it from Photos.'});
+    }
+   },
    async startLivePreview(video:HTMLVideoElement,canvas:HTMLCanvasElement){
     try {
       await (store.renderEngine()==='template'?templateRenderer:renderer).startLivePreview(
