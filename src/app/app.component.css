@@ -37,3 +37,16 @@
   color:#fff;
   background:rgba(0,0,0,.7);
 }
+
+/* WhatsApp text handoff: the user's number stays in local app state only. */
+.intro{overflow-y:auto;overscroll-behavior:contain}
+.whatsapp-phone-field{grid-column:1/-1}
+.whatsapp-phone-field input{width:100%;min-height:42px}
+.result-action-bar .whatsapp-action{border-color:rgba(37,211,102,.65)}
+.result-action-bar .whatsapp-action:hover,.result-action-bar .whatsapp-action:focus-visible{background:#1b9b50;border-color:#25d366}
+.whatsapp-help{position:absolute;bottom:108px;left:50%;transform:translateX(-50%);z-index:28;
+ width:min(92%,375px);text-align:center;font:600 10px "Chakra Petch",sans-serif;
+ color:#fff;background:rgba(0,0,0,.8);padding:6px 9px;border-radius:10px;pointer-events:none}
+.whatsapp-error{position:absolute;bottom:157px;left:5%;width:90%;z-index:31;
+ background:#300a0a;border:1px solid #ed1c24;color:#fff;text-align:center;
+ padding:10px;border-radius:8px;font-size:12px}
