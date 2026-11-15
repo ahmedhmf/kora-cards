@@ -17,10 +17,37 @@ export class GoogleDriveService {
   private scriptPromise?:Promise<void>;
   private folderId='';
 
+  /** Explicit staff sign-in; must be called from a user gesture. */
+  async connect():Promise<void>{
+    this.assertConfigured();
+    await this.authorize();
+  }
+
+  get connected():boolean{return Boolean(this.accessToken)}
+
+  /** Existing manual exports retain their sign-in behavior. */
   async upload(file:File):Promise<DriveUploadResult>{
     this.assertConfigured();
-    const token=await this.authorize();
-    const folderId=await this.ensureFolder(token);
+    return this.uploadWithToken(file,await this.authorize());
+  }
+
+  /** Never launch an OAuth popup while uploading a completed player card. */
+  async uploadAuthorized(file:File):Promise<DriveUploadResult>{
+    this.assertConfigured();
+    if(!this.accessToken)throw new Error('Google Drive is not connected. Ask KORA staff to reconnect.');
+    return this.uploadWithToken(file,this.accessToken);
+  }
+
+  private async uploadWithToken(file:File,token:string):Promise<DriveUploadResult>{
+    let folderId:string;
+    try{folderId=await this.ensureFolder(token)}
+    catch(error){
+      if(error instanceof Error && error.message.includes('(401)')){
+        this.accessToken='';this.folderId='';
+        throw new Error('Google Drive sign-in expired. Ask KORA staff to reconnect.');
+      }
+      throw error;
+    }
     const boundary=`kora_${crypto.randomUUID()}`;
     const metadata:{name:string;mimeType:string;parents:string[]}={name:file.name,mimeType:file.type,parents:[folderId]};
     const body=new Blob([
@@ -33,8 +60,14 @@ export class GoogleDriveService {
     const response=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink',{
       method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':`multipart/related; boundary=${boundary}`},body
     });
-    if(response.status===401){this.accessToken='';throw new Error('Google authorization expired. Please try again.');}
-    if(!response.ok){const detail=await response.text();throw new Error(`Google Drive upload failed (${response.status}): ${detail}`);}
+    if(response.status===401){
+      this.accessToken='';this.folderId='';
+      throw new Error('Google Drive sign-in expired. Ask KORA staff to reconnect.');
+    }
+    if(!response.ok){
+      const detail=await response.text();
+      throw new Error(`Google Drive upload failed (${response.status}): ${detail}`);
+    }
     return response.json() as Promise<DriveUploadResult>;
   }
 
