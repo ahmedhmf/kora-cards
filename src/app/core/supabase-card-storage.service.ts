@@ -97,6 +97,32 @@ export class SupabaseCardStorageService {
     return this.session!;
   }
 
+  /** Share only a time-limited download link, not a public bucket URL. */
+  async signedDownloadUrl(path:string):Promise<string>{
+    const session=await this.validSession();
+    const encoded=path.split('/').map(encodeURIComponent).join('/');
+    const response=await fetch(`${this.base()}/storage/v1/object/sign/${encodeURIComponent(config.bucket)}/${encoded}`,{
+      method:'POST',
+      headers:{apikey:config.publishableKey,Authorization:`Bearer ${session.access_token}`,
+        'Content-Type':'application/json'},
+      body:JSON.stringify({expiresIn:7*24*60*60}),
+    });
+    if(response.status===401){
+      this.disconnect();
+      throw new Error('Supabase session expired. KORA staff must reconnect.');
+    }
+    if(!response.ok){
+      const data=await response.json().catch(()=>({message:'Cannot create download link'})) as {message?:string};
+      throw new Error(data.message||'Could not create download link');
+    }
+    const data=await response.json() as {signedURL?:string};
+    if(!data.signedURL)throw new Error('Supabase did not return a signed download link');
+    const signed=new URL(data.signedURL,`${this.base()}/storage/v1/`);
+    if(signed.origin!==new URL(this.base()).origin)throw new Error('Unexpected Supabase download host');
+    signed.searchParams.set('download','kora-card.png');
+    return signed.toString();
+  }
+
   async uploadCard(blob:Blob):Promise<string>{
     const session=await this.validSession();
     if(blob.type!=='image/png'||!blob.size)throw new Error('Only completed PNG cards can be uploaded');
