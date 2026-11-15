@@ -92,8 +92,8 @@
       <div class="card-loader" *ngIf="store.cardLoading()"><span></span> Removing background…</div>
     </div>
 
-    <div class="result-action-bar" *ngIf="!store.cardLoading() && !store.error()">
-      <button class="icon-action-btn" type="button" (click)="store.renderEngine()==='template' ? store.download(cardCanvas) : store.downloadCardVideo(cardCanvas)" [disabled]="store.isSharing()||store.driveUploading()" [attr.aria-label]="store.renderEngine()==='template' ? 'Save Photo' : 'Save Video'" [attr.title]="store.renderEngine()==='template' ? 'Save Photo' : 'Save Video'">
+    <div class="result-action-bar">
+      <button class="icon-action-btn" type="button" (click)="store.renderEngine()==='template' ? store.download(cardCanvas) : store.downloadCardVideo(cardCanvas)" [disabled]="store.cardLoading()||!!store.error()||store.isSharing()||store.driveUploading()" [attr.aria-label]="store.renderEngine()==='template' ? 'Save Photo' : 'Save Video'" [attr.title]="store.renderEngine()==='template' ? 'Save Photo' : 'Save Video'">
         <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
           <polyline points="7 10 12 15 17 10"/>
@@ -101,7 +101,7 @@
         </svg>
       </button>
 
-      <button *ngIf="store.devComparisonAvailable() && store.renderEngine()==='template' && store.cardMediaType()==='image'" class="icon-action-btn compare-action-btn" type="button" (click)="store.toggleComparison()" [disabled]="store.comparisonBusy()" aria-label="Compare MODNet and ORMBG AI models" title="Compare AI models" [attr.aria-pressed]="store.comparisonOpen()">
+      <button *ngIf="store.renderEngine()==='template' && store.cardMediaType()==='image'" class="icon-action-btn compare-action-btn" type="button" (click)="store.toggleComparison()" [disabled]="store.comparisonBusy()" aria-label="Compare MODNet and ORMBG AI models" title="Compare AI models" [attr.aria-pressed]="store.comparisonOpen()">
         <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <rect x="2" y="4" width="8" height="16" rx="1"></rect>
           <rect x="14" y="4" width="8" height="16" rx="1"></rect>
@@ -121,8 +121,8 @@
     <button *ngIf="store.renderEngine()==='template' && !store.cardLoading() && !store.error()" type="button" class="secondary" (click)="store.share(cardCanvas)">SHARE PHOTO</button>
     <div class="error" *ngIf="store.error()">{{store.error()}}</div>
     <button *ngIf="store.error() && store.renderEngine()==='template'" type="button" class="secondary" (click)="store.retake()">RETAKE PHOTO</button>
-    <!-- Test-only comparison panel, enabled in development or with ?koraCompare=1. -->
-    <section *ngIf="store.comparisonOpen() && store.devComparisonAvailable()" class="model-compare-panel" aria-label="Development-only AI comparison">
+    <!-- Temporary model comparison tool during model selection; remove once a winner is chosen. -->
+    <section *ngIf="store.comparisonOpen()" class="model-compare-panel" aria-label="AI model comparison">
       <header class="model-compare-heading">
         <strong>RAW BACKGROUND REMOVAL · TEST MODE</strong>
         <button type="button" class="secondary" (click)="store.toggleComparison()" [disabled]="store.comparisonBusy()">CLOSE</button>
@@ -134,7 +134,7 @@
         <div><strong>ORMBG INT8</strong><canvas #ormbgTest aria-label="ORMBG raw output"></canvas><small>{{store.comparisonOrmbg() || 'Not tested'}}</small></div>
       </div>
       <p class="error" *ngIf="store.comparisonError()">{{store.comparisonError()}}</p>
-      <small>Processing times include first-time model downloads and initialization. This screen is enabled only during development or through ?koraCompare=1.</small>
+      <small>Processing times include first-time model downloads and initialization. Temporary testing tool; remove after selecting the production model.</small>
     </section>
   </section>
 
