@@ -152,7 +152,9 @@ export class TemplateCardRendererService {
     ctx.drawImage(this.template, 0, 0, this.width, this.height);
     // Only the transparent person is placed over the white portrait panel.
     ctx.save();
-    ctx.beginPath(); ctx.rect(165, 342, 546, 519); ctx.clip();
+    // Let the player's head project above the portrait panel border (reference card),
+    // while stopping at the player-name strip below.
+    ctx.beginPath(); ctx.rect(165, 250, 546, 611); ctx.clip();
     // Position the actual extracted silhouette, not the complete source
     // photograph. This prevents close-up phone photos from being overzoomed.
     const bounds = boundsOverride ?? this.subjectBounds(person);
@@ -160,9 +162,9 @@ export class TemplateCardRendererService {
     // Wide cutouts may crop at the left/right of the player window, like a sports
     // portrait; never crop the top of the head merely to fill the frame.
     const desiredWidth = 490;
-    const desiredHeight = 430;
+    const desiredHeight = 585;
     const maximumWidth = 680;
-    const maximumHeight = 505;
+    const maximumHeight = 605;
     const scale = Math.min(
       Math.max(desiredWidth / bounds.width, desiredHeight / bounds.height),
       maximumWidth / bounds.width,
