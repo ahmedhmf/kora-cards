@@ -28,11 +28,22 @@ set search_path = ''
 as $$
 declare
   v_count integer;
+  v_daily_count integer;
   v_window timestamptz := date_trunc('hour', now());
 begin
   if p_hash is null or length(p_hash) <> 64 or p_hash !~ '^[a-f0-9]{64}$' then
     return false;
   end if;
+
+  -- Global cap to limit costs even if a caller spoofs their network address.
+  -- Advisory lock serializes quota claims across requests.
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtext('kora-global-upload-quota'));
+  insert into public.kora_upload_limits (client_hash,window_start,count)
+  values (repeat('0',64),date_trunc('day',now()),1)
+  on conflict (client_hash,window_start)
+  do update set count=public.kora_upload_limits.count + 1
+  returning count into v_daily_count;
+  if v_daily_count > 2500 then return false; end if;
 
   -- Atomic insert/upsert prevents simultaneous upload requests bypassing quota.
   insert into public.kora_upload_limits (client_hash,window_start,count)
