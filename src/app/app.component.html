@@ -49,17 +49,6 @@
           placeholder="+49 151 12345678" aria-label="WhatsApp recipient phone number with country code">
       </label>
     </div>
-    <details class="cloud-staff-settings">
-      <summary>KORA STAFF · SUPABASE STORAGE</summary>
-      <div class="cloud-staff-inputs">
-        <label>STAFF EMAIL<input #cloudStaffEmail type="email" autocomplete="username" placeholder="staff@kora.example"></label>
-        <label>STAFF PASSWORD<input #cloudStaffPassword type="password" autocomplete="current-password" placeholder="Supabase staff password"></label>
-      </div>
-      <button type="button" class="secondary" (click)="store.connectSupabase(cloudStaffEmail.value,cloudStaffPassword.value);cloudStaffPassword.value=''" [disabled]="store.cloudBusy()">CONNECT CLOUD STORAGE</button>
-      <button *ngIf="store.cloudConnected()" type="button" class="secondary" (click)="store.disconnectSupabase()">DISCONNECT</button>
-      <p class="privacy">{{store.cloudConnected() ? 'Supabase connected for this kiosk session.' : 'Staff must connect Supabase before automatic uploads.'}}</p>
-      <p class="privacy" *ngIf="store.cloudMessage()">{{store.cloudMessage()}}</p>
-    </details>
     <button class="primary" (click)="store.openCamera()"><span class="camera-icon">●</span> OPEN CAMERA <b>→</b></button>
     <label class="upload-button" style="display:block;text-align:center;padding:12px;border:1px solid #ed1c24">OR UPLOAD PHOTO<input type="file" accept="image/*" (change)="store.selectCardPhoto($event)" style="display:none"></label>
     <p class="privacy">Your photo is processed on this device.</p>
