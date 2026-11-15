@@ -8,7 +8,6 @@ on conflict (id) do update set
 -- Remove historical staff policies and old allowlist. No public object policies.
 drop policy if exists "KORA staff upload own finished images" on storage.objects;
 drop policy if exists "KORA staff sign download URLs for own images" on storage.objects;
-drop policy if exists "KORA staff see their membership" on public.kora_storage_staff;
 drop table if exists public.kora_storage_staff;
 
 -- Atomic server-only quota counter, stored as hashed requests per hour.
@@ -41,7 +40,7 @@ begin
   on conflict (client_hash,window_start)
   do update set count=public.kora_upload_limits.count + 1
   returning count into v_count;
-  return v_count <= 30; -- per source IP per hour
+  return v_count <= 120; -- per source IP per hour (adjust for event traffic)
 end;
 $$;
 revoke all on function public.kora_claim_upload_slot(text) from public, anon, authenticated;
