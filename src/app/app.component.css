@@ -50,3 +50,29 @@
 .whatsapp-error{position:absolute;bottom:157px;left:5%;width:90%;z-index:31;
  background:#300a0a;border:1px solid #ed1c24;color:#fff;text-align:center;
  padding:10px;border-radius:8px;font-size:12px}
+
+/* Completed player card download: QR is produced on-device from Supabase signed URL. */
+.cloud-consent-label{grid-column:1/-1;display:flex!important;align-items:flex-start;gap:10px;
+ font-size:12px;line-height:1.4}
+.cloud-consent-label input[type=checkbox]{width:18px;height:18px;min-width:18px;accent-color:#ed1c24}
+.cloud-staff-settings{margin:8px 0;padding:10px 12px;border:1px solid rgba(255,255,255,.18);
+ border-radius:8px;background:rgba(0,0,0,.35);font-size:12px}
+.cloud-staff-settings summary{cursor:pointer;font-weight:700}
+.cloud-staff-inputs{display:grid;gap:8px;padding:10px 0}
+.cloud-staff-inputs input{width:100%;min-height:38px}
+.cloud-staff-settings .secondary{margin:6px 6px 6px 0}
+.result .card-qr-panel{position:absolute;z-index:29;left:50%;bottom:160px;
+ transform:translateX(-50%);width:min(80vw,245px);padding:11px 12px;
+ background:rgba(5,12,10,.96);color:#fff;border:1px solid rgba(255,255,255,.35);
+ border-radius:14px;box-shadow:0 8px 22px rgba(0,0,0,.65);
+ display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
+.card-qr-panel strong{font:800 11px "Chakra Petch",sans-serif;letter-spacing:.04em}
+.card-qr-panel img{width:min(54vw,190px);height:auto;aspect-ratio:1;image-rendering:pixelated;
+ background:white;padding:5px;border-radius:5px}
+.card-qr-panel span,.card-qr-panel small{font-size:10px;color:#eee}
+.card-qr-panel a{font-size:11px;color:#9feac0;text-decoration:underline}
+.cloud-upload-status{position:absolute;bottom:115px;left:50%;transform:translateX(-50%);
+ width:min(92%,400px);text-align:center;background:rgba(0,0,0,.87);
+ border-radius:8px;padding:6px;color:#fff;font-size:10px;z-index:29}
+.result:has(.card-qr-panel) .whatsapp-help{display:none}
+@media(max-height:670px){.result .card-qr-panel{bottom:135px;transform:translateX(-50%) scale(.82);transform-origin:bottom center}}
