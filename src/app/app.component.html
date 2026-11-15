@@ -7,19 +7,15 @@
     <div class="eyebrow"><i></i> CHOOSE YOUR FORMAT</div>
     <h1>MAKE IT<br><em>KORA</em></h1>
     <div class="experience-grid">
-      <button class="experience-card card-option" type="button" (click)="store.chooseCard()"><span>01</span><div><b>PLAYER CARD</b><small>Record your celebration and create a player card.</small></div><i>→</i></button>
+      <button class="experience-card card-option" type="button" (click)="store.chooseCard()"><span>01</span><div><b>PLAYER CARD</b><small>Take a photo and create your official KORA player card.</small></div><i>→</i></button>
       <button class="experience-card filter-option" type="button" (click)="store.chooseFilter()"><span>02</span><div><b>PHOTO FILTER</b><small>Take or upload a photo and add a KORA frame.</small></div><i>→</i></button>
     </div>
   </section>
 
   <section class="intro" *ngIf="store.experience()==='card'&&store.stage()==='intro'">
     <div class="eyebrow"><i></i> YOUR MOMENT. YOUR CARD.</div>
-    <p class="intro-copy">{{store.renderEngine()==='template' ? 'Stand in front of a clear backdrop, away from chairs and other objects. Take a photo and KORA automatically creates your card.' : 'Give us your best goal celebration. In 3 seconds, the camera records a two-second clip and turns it into your own Kora card.'}}</p>
-    <div class="render-engine-picker" role="group" aria-label="Card renderer" style="display:flex;gap:12px;margin:18px 0;flex-wrap:wrap">
-      <button type="button" class="secondary" [attr.aria-pressed]="store.renderEngine()==='template'" (click)="store.setRenderEngine('template')">NEW KORA TEMPLATE</button>
-      <button type="button" class="secondary" [attr.aria-pressed]="store.renderEngine()==='legacy'" (click)="store.setRenderEngine('legacy')">CLASSIC CARDS</button>
-    </div>
-    <p class="privacy">{{store.renderEngine()==='template' ? 'NEW TEMPLATE: photos only. Portrait-specific local ORMBG AI (initial download required). Classic Cards retain video.' : 'CLASSIC CARDS: original video recording experience.'}}</p>
+    <p class="intro-copy">Stand in front of a clear backdrop, away from chairs and other objects. Take a photo and KORA automatically creates your card.</p>
+    <p class="privacy">KORA PLAYER CARD · PHOTO EDITION · Automatic ORMBG background removal</p>
     <div class="player-fields">
       <label>PLAYER NAME<input [ngModel]="store.playerName()" (ngModelChange)="store.setName($event)" maxlength="18" placeholder="e.g. Cristiano"></label>
       <label>INSTAGRAM<input [ngModel]="store.instagramHandle()" (ngModelChange)="store.setInstagramHandle($event)" maxlength="24" placeholder="@username"></label>
@@ -45,8 +41,8 @@
       <label>SHIRT NUMBER<input [ngModel]="store.playerNumber()" (ngModelChange)="store.setNumber($event)" type="number" min="0" max="99" placeholder="10"></label>
     </div>
     <button class="primary" (click)="store.openCamera()"><span class="camera-icon">●</span> OPEN CAMERA <b>→</b></button>
-    <label *ngIf="store.renderEngine()==='template'" class="upload-button" style="display:block;text-align:center;padding:12px;border:1px solid #ed1c24">OR UPLOAD PHOTO<input type="file" accept="image/*" (change)="store.selectCardPhoto($event)" style="display:none"></label>
-    <p class="privacy">{{store.renderEngine()==='template' ? 'Your picture is processed on this device.' : 'Your recording stays on this device.'}}</p>
+    <label class="upload-button" style="display:block;text-align:center;padding:12px;border:1px solid #ed1c24">OR UPLOAD PHOTO<input type="file" accept="image/*" (change)="store.selectCardPhoto($event)" style="display:none"></label>
+    <p class="privacy">Your photo is processed on this device.</p>
     <div class="error" *ngIf="store.error()">{{store.error()}}</div>
   </section>
 
@@ -55,26 +51,9 @@
       <div class="live-card-frame">
         <video #camera autoplay muted playsinline [appMediaStream]="store.mediaStream()" [class.mirrored]="store.facingMode()==='user'" [class.template-photo-preview]="store.renderEngine()==='template'" (loadeddata)="store.startLivePreview(camera, liveCameraCanvas)" class="processing-video"></video>
         <canvas #liveCameraCanvas [class.template-live-card]="store.renderEngine()==='template'" class="live-card-canvas" width="1080" height="1920" aria-label="Live Card Preview"></canvas>
-        <svg *ngIf="store.renderEngine()==='template'" class="framing-outline"
-          [class.framing-ready]="store.framingState()==='ready'"
-          [class.framing-unavailable]="store.framingState()==='unavailable'"
-          viewBox="0 0 877 1558" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-          <!-- Head rises above the card portrait frame, like the reference player. -->
-          <path d="M 415 393 C 390 369 388 329 405 294 C 425 253 482 248 509 284 C 533 320 521 368 503 393
-                   C 550 407 615 426 653 481 C 689 540 700 648 703 736
-                   L 649 749 L 628 633 C 615 686 618 786 616 860
-                   L 353 860 C 348 779 359 691 350 634 L 311 752 L 262 734
-                   C 265 615 287 531 327 473 C 354 435 381 411 415 393 Z"/>
-        </svg>
-        <div *ngIf="store.renderEngine()==='template'" class="framing-feedback"
-          [class.framing-ready]="store.framingState()==='ready'"
-          [class.framing-unavailable]="store.framingState()==='unavailable'"
-          role="status" aria-live="polite">
-          <span class="framing-dot"></span>{{store.framingHint()}}
-        </div>
         <div class="count" *ngIf="store.stage()==='countdown'"><strong>{{store.countdown()}}</strong><span>GET READY</span></div>
         <div class="recording" *ngIf="store.stage()==='recording'"><i></i> CELEBRATE!</div>
-        <div *ngIf="store.renderEngine()==='template'" class="preview-hint">ALIGN WITH THE PLAYER OUTLINE · ORMBG AFTER PHOTO</div>
+        <div *ngIf="store.renderEngine()==='template'" class="preview-hint">FRAME YOUR PHOTO · BACKGROUND REMOVED AFTER CAPTURE</div>
       </div>
 
       <div class="iphone-shutter-bar" *ngIf="store.stage()==='camera'">
@@ -85,7 +64,7 @@
           </svg>
         </button>
 
-        <button class="iphone-shutter-button" type="button" (click)="store.renderEngine()==='template' ? store.captureCardPhoto(camera) : store.startSequence()" [disabled]="store.cardLoading() || (store.renderEngine()==='template' && store.framingState()!=='ready' && store.framingState()!=='unavailable')" [attr.aria-label]="store.renderEngine()==='template' ? 'Take Photo' : 'Record Video'">
+        <button class="iphone-shutter-button" type="button" (click)="store.captureCardPhoto(camera)" [disabled]="store.cardLoading()" aria-label="Take Photo">
           <span class="shutter-outer-ring">
             <span class="shutter-inner-circle"></span>
           </span>
@@ -98,7 +77,6 @@
         </button>
       </div>
     </div>
-    <button *ngIf="store.stage()==='camera' && store.renderEngine()==='legacy'" type="button" class="secondary" (click)="store.captureCardPhoto(camera)" [disabled]="store.cardLoading()" style="margin:12px auto;display:block">TAKE PHOTO INSTEAD</button>
   </section>
 
   <section class="result" *ngIf="store.experience()==='card'&&store.stage()==='result'">
