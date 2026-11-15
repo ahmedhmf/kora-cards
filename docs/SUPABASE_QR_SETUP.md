@@ -54,7 +54,7 @@ If cloud storage fails, Save and Print continue to work.
   download that card until the link expires (seven days).
 - The endpoint checks an exact browser origin, a consent header, PNG signature,
   expected card dimensions (877×1558), 10 MB size cap and an atomic
-  per-source-IP quota of 120 uploads/hour. **Origin headers and a consent flag
+  per-source-IP quota of 120 uploads/hour plus a global cap of 2,500 uploads/day. **Origin headers and a consent flag
   are not proof of a trusted or human caller.** Public endpoints can still
   be abused. For a large public deployment, add gateway throttling, a bot
   challenge or a device-specific authentication scheme and usage monitoring.
