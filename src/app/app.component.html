@@ -107,6 +107,14 @@
       <div class="card-loader" *ngIf="store.cardLoading()"><span></span> Removing background…</div>
     </div>
 
+    <div class="card-qr-panel" *ngIf="store.cloudQrImage()" aria-label="Download your KORA card with QR code">
+      <strong>SCAN TO GET YOUR CARD</strong>
+      <img [src]="store.cloudQrImage()" alt="QR code to download the finished KORA player card">
+      <span>Scan with your phone camera</span>
+      <a [href]="store.cloudQrUrl()" target="_blank" rel="noopener noreferrer">Or open download link</a>
+      <small>Download available for 7 days</small>
+    </div>
+
     <div class="result-action-bar">
       <button class="icon-action-btn" type="button" (click)="store.renderEngine()==='template' ? store.download(cardCanvas) : store.downloadCardVideo(cardCanvas)" [disabled]="store.cardLoading()||!!store.error()||store.isSharing()||store.driveUploading()" [attr.aria-label]="store.renderEngine()==='template' ? 'Save Photo' : 'Save Video'" [attr.title]="store.renderEngine()==='template' ? 'Save Photo' : 'Save Video'">
         <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
