@@ -47,6 +47,46 @@ If cloud storage fails, Save and Print continue to work.
    server-side limits before enabling cloud uploads in production.**
 6. Rebuild and deploy the PWA. No staff login is shown.
 
+## Fixing browser CORS errors during Angular development
+
+When you run Angular at `http://localhost:4200`, this **exact origin** must
+appear in the Edge Function's `KORA_ALLOWED_ORIGINS` secret, alongside the
+production PWA origin. Changing the local Angular configuration or publishable
+key alone does **not** fix the server-side preflight error.
+
+In the linked Supabase project, set the server environment variable, retaining
+your deployed PWA's actual domain:
+
+```bash
+supabase secrets set 'KORA_ALLOWED_ORIGINS=http://localhost:4200,https://YOUR_DEPLOYED_PWA_DOMAIN'
+```
+
+Then ensure `KORA_RATE_LIMIT_SALT` has been set to a long random value.
+Deploy the repository's function (not the Angular app) with:
+
+```bash
+supabase functions deploy kora-card-upload --no-verify-jwt
+```
+
+The function deliberately has no customer authentication, so Supabase's
+platform JWT verification must be disabled. Verify the deployment in
+**Supabase Dashboard → Edge Functions → kora-card-upload → Logs / Invocations**.
+
+Test the preflight from a terminal:
+
+```bash
+curl -i -X OPTIONS 'https://YOUR_PROJECT_REF.supabase.co/functions/v1/kora-card-upload' \\
+  -H 'Origin: http://localhost:4200' \\
+  -H 'Access-Control-Request-Method: POST' \\
+  -H 'Access-Control-Request-Headers: apikey,content-type,x-kora-consent'
+```
+
+Expected: HTTP 200 and `Access-Control-Allow-Origin: http://localhost:4200`.
+A 403 means the origin isn't allowed by the deployed function; a 401 suggests
+JWT verification; 404 suggests no function deployment; 500/503/502 may mean
+a function boot or server error. Check the Supabase Edge Function logs.
+Do not set `Access-Control-Allow-Origin: *` as a shortcut.
+
 ## Security and operational notes
 
 - The storage bucket is private; the Edge Function uses server credentials to
