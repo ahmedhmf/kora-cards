@@ -101,15 +101,6 @@
         </svg>
       </button>
 
-      <button *ngIf="store.renderEngine()==='template' && store.cardMediaType()==='image'" class="icon-action-btn compare-action-btn" type="button" (click)="store.toggleComparison()" [disabled]="store.comparisonBusy()" aria-label="Compare MODNet and ORMBG AI models" title="Compare AI models" [attr.aria-pressed]="store.comparisonOpen()">
-        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <rect x="2" y="4" width="8" height="16" rx="1"></rect>
-          <rect x="14" y="4" width="8" height="16" rx="1"></rect>
-          <path d="M12 3v18"></path>
-        </svg>
-        <span class="compare-action-label">COMPARE</span>
-      </button>
-
       <button class="icon-action-btn" type="button" (click)="store.resetToHome()" aria-label="Go Home" title="Go Home">
         <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
@@ -121,21 +112,6 @@
     <button *ngIf="store.renderEngine()==='template' && !store.cardLoading() && !store.error()" type="button" class="secondary" (click)="store.share(cardCanvas)">SHARE PHOTO</button>
     <div class="error" *ngIf="store.error()">{{store.error()}}</div>
     <button *ngIf="store.error() && store.renderEngine()==='template'" type="button" class="secondary" (click)="store.retake()">RETAKE PHOTO</button>
-    <!-- Temporary model comparison tool during model selection; remove once a winner is chosen. -->
-    <section *ngIf="store.comparisonOpen()" class="model-compare-panel" aria-label="AI model comparison">
-      <header class="model-compare-heading">
-        <strong>RAW BACKGROUND REMOVAL · TEST MODE</strong>
-        <button type="button" class="secondary" (click)="store.toggleComparison()" [disabled]="store.comparisonBusy()">CLOSE</button>
-      </header>
-      <p>Both models receive the identical source photo. White is only the viewing backdrop; no KORA card cropping or mask cleanup is applied.</p>
-      <button type="button" class="secondary" (click)="store.runComparison(modnetTest,ormbgTest)" [disabled]="store.comparisonBusy()">{{store.comparisonBusy() ? 'PROCESSING BOTH MODELS…' : 'RUN MODNET VS ORMBG'}}</button>
-      <div class="model-compare-grid">
-        <div><strong>MODNet FP32</strong><canvas #modnetTest aria-label="MODNet raw output"></canvas><small>{{store.comparisonModnet() || 'Not tested'}}</small></div>
-        <div><strong>ORMBG INT8</strong><canvas #ormbgTest aria-label="ORMBG raw output"></canvas><small>{{store.comparisonOrmbg() || 'Not tested'}}</small></div>
-      </div>
-      <p class="error" *ngIf="store.comparisonError()">{{store.comparisonError()}}</p>
-      <small>Processing times include first-time model downloads and initialization. Temporary testing tool; remove after selecting the production model.</small>
-    </section>
   </section>
 
   <section class="filter-source" *ngIf="store.experience()==='filter'&&store.filterStage()==='source'">
