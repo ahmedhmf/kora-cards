@@ -3,9 +3,19 @@
 import {createClient} from 'npm:@supabase/supabase-js@2';
 
 const projectUrl=Deno.env.get('SUPABASE_URL')??'';
-const secretKeys=Deno.env.get('SUPABASE_SECRET_KEYS');
-const secretKey=(secretKeys ? (JSON.parse(secretKeys) as Record<string,string>).default : '')||
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'';
+function serviceKey():string {
+  // A malformed environment variable must not crash the worker before OPTIONS.
+  const raw=Deno.env.get('SUPABASE_SECRET_KEYS');
+  if(raw){
+    try {
+      const decoded=JSON.parse(raw) as Record<string,string>;
+      if(typeof decoded.default==='string'&&decoded.default)return decoded.default;
+    }catch {
+      console.error('SUPABASE_SECRET_KEYS is not valid JSON');
+    }
+  }
+  return Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'';
+}
 const allowedOrigins=(Deno.env.get('KORA_ALLOWED_ORIGINS')||'')
   .split(',').map(s=>s.trim()).filter(Boolean);
 const salt=Deno.env.get('KORA_RATE_LIMIT_SALT')||'';
@@ -16,7 +26,7 @@ function responseJson(status:number,data:Record<string,unknown>,origin:string){
   return new Response(JSON.stringify(data),{status,headers:{
     'Content-Type':'application/json','Cache-Control':'no-store',
     'Access-Control-Allow-Origin':origin,'Vary':'Origin',
-    'Access-Control-Allow-Headers':'content-type,apikey,x-kora-consent',
+    'Access-Control-Allow-Headers':'content-type,apikey,x-kora-consent,authorization,x-client-info',
     'Access-Control-Allow-Methods':'POST,OPTIONS',
   }});
 }
@@ -36,9 +46,14 @@ async function hashClient(ip:string){
 
 Deno.serve(async request=>{
   const origin=request.headers.get('origin')||'';
-  if(!origin||!allowedOrigins.includes(origin))return new Response('Forbidden origin',{status:403});
-  if(request.method==='OPTIONS')return responseJson(200,{},origin);
+  if(!origin||!allowedOrigins.includes(origin)){
+    console.warn('Blocked KORA upload from non-allowlisted origin:',origin);
+    return responseJson(403,{error:'Origin is not allowlisted in KORA_ALLOWED_ORIGINS'},origin||'null');
+  }
+  // A valid preflight must succeed before the browser sends any image bytes.
+  if(request.method==='OPTIONS')return responseJson(200,{ok:true},origin);
   if(request.method!=='POST')return responseJson(405,{error:'Method not allowed'},origin);
+  const secretKey=serviceKey();
   if(!projectUrl||!secretKey||!salt||allowedOrigins.length===0){
     return responseJson(503,{error:'KORA cloud service is not configured'},origin);
   }
