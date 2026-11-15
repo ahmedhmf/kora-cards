@@ -14,8 +14,8 @@ export type Experience='home'|'card'|'filter';
 export type FilterStage='source'|'camera'|'editor';
 export type CardDesign='blue-gold'|'red-black'|'white-red'|'mono-red';
 export type RenderEngine='legacy'|'template';
-interface CardState{experience:Experience;stage:CardStage;filterStage:FilterStage;facingMode:FacingMode;filterImageUrl:string;filterProcessed:boolean;cardMediaType:'image'|'video';countdown:number;error:string;isSharing:boolean;driveAvailable:boolean;driveUploading:boolean;driveMessage:string;cardLoading:boolean;playerName:string;instagramHandle:string;playerPosition:string;playerNumber:number;cardDesign:CardDesign;renderEngine:RenderEngine;replayUrl:string;mediaStream:MediaStream|null;matchedPlayer:RatedPlayer}
-const initialState:CardState={experience:'card',stage:'intro',filterStage:'source',facingMode:'environment',filterImageUrl:'',filterProcessed:false,cardMediaType:'video',countdown:3,error:'',isSharing:false,driveAvailable:!GOOGLE_DRIVE_CONFIG.clientId.startsWith('PASTE_'),driveUploading:false,driveMessage:'',cardLoading:false,playerName:'',instagramHandle:'',playerPosition:'ST',playerNumber:10,cardDesign:'blue-gold',renderEngine:'template',replayUrl:'',mediaStream:null,matchedPlayer:randomPlayer('ST')};
+interface CardState{experience:Experience;stage:CardStage;filterStage:FilterStage;facingMode:FacingMode;filterImageUrl:string;filterProcessed:boolean;cardMediaType:'image'|'video';countdown:number;error:string;isSharing:boolean;driveAvailable:boolean;driveUploading:boolean;driveMessage:string;cardLoading:boolean;playerName:string;instagramHandle:string;phoneNumber:string;whatsappError:string;playerPosition:string;playerNumber:number;cardDesign:CardDesign;renderEngine:RenderEngine;replayUrl:string;mediaStream:MediaStream|null;matchedPlayer:RatedPlayer}
+const initialState:CardState={experience:'card',stage:'intro',filterStage:'source',facingMode:'environment',filterImageUrl:'',filterProcessed:false,cardMediaType:'video',countdown:3,error:'',isSharing:false,driveAvailable:!GOOGLE_DRIVE_CONFIG.clientId.startsWith('PASTE_'),driveUploading:false,driveMessage:'',cardLoading:false,playerName:'',instagramHandle:'',phoneNumber:'',whatsappError:'',playerPosition:'ST',playerNumber:10,cardDesign:'blue-gold',renderEngine:'template',replayUrl:'',mediaStream:null,matchedPlayer:randomPlayer('ST')};
 export const CardStore=signalStore(
  {providedIn:'root'},withState(initialState),
  withMethods((store,camera=inject(CameraService),renderer=inject(CardRendererService),templateRenderer=inject(TemplateCardRendererService),exporter=inject(CardExportService),filter=inject(PhotoFilterService),drive=inject(GoogleDriveService))=>{
@@ -34,6 +34,22 @@ export const CardStore=signalStore(
    chooseFilter(){patchState(store,{experience:'filter',filterStage:'source',error:''})},
    setName(playerName:string){patchState(store,{playerName})},
    setInstagramHandle(instagramHandle:string){patchState(store,{instagramHandle})},
+   setPhoneNumber(phoneNumber:string){patchState(store,{phoneNumber,whatsappError:''})},
+   openWhatsApp(){
+    if(store.cardLoading()||store.error()||store.cardMediaType()!=='image')return;
+    // WhatsApp click-to-chat requires the country code and digits only.
+    const raw=store.phoneNumber().trim();
+    const digits=raw.replace(/[\s().-]/g,'').replace(/^\+/,'');
+    if(!/^\+?[0-9\s().-]+$/.test(raw)||!/^\d{8,15}$/.test(digits)||digits.startsWith('0')){
+      patchState(store,{whatsappError:'Enter the full WhatsApp number with country code, e.g. +49 151 12345678.'});
+      return;
+    }
+    patchState(store,{whatsappError:''});
+    const player=store.playerName().trim()||'KORA STAR';
+    const message=`⚽ Your KORA player card for ${player} is ready! 📸`;
+    // This opens a prefilled text conversation; wa.me cannot attach a canvas.
+    window.location.assign(`https://wa.me/${digits}?text=${encodeURIComponent(message)}`);
+   },
    setPosition(playerPosition:string){patchState(store,{playerPosition,matchedPlayer:randomPlayer(playerPosition,store.matchedPlayer().name)})},
    setNumber(value:number|string){const number=Math.max(0,Math.min(99,Number(value)||0));patchState(store,{playerNumber:number})},
    setCardDesign(cardDesign:CardDesign){patchState(store,{cardDesign})},
