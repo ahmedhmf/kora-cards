@@ -358,6 +358,13 @@ export class TemplateCardRendererService {
                 console.warn('Live person preview skipped; retaining camera guide', error);
                 this.lastPreviewWarning = time;
               }
+              if (error instanceof Error && error.message === 'No player detected') {
+                failures = 0;
+                this.alignedFrames = 0;
+                onFraming?.('adjust', 'Stand inside the outline');
+                this.drawLiveCardFrame(canvas, video, getData());
+                return;
+              }
               failures++;
               if (failures >= 3 && !segmentationUnavailable) {
                 segmentationUnavailable = true;
