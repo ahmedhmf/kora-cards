@@ -21,7 +21,7 @@ export class SupabaseCardStorageService {
       throw new Error('Only completed KORA card PNGs smaller than 10 MB can be uploaded.');
     }
     const response=await fetch(
-      `${config.url.replace(/\\/$/,'')}/functions/v1/kora-card-upload`,{
+      `${(config.url.endsWith('/') ? config.url.slice(0,-1) : config.url)}/functions/v1/kora-card-upload`,{
       method:'POST',
       headers:{
         'Content-Type':'image/png',
@@ -34,7 +34,7 @@ export class SupabaseCardStorageService {
       downloadUrl?:string;error?:string;
     };
     if(!response.ok)throw new Error(data.error||`Cloud upload failed (${response.status}).`);
-    if(!data.downloadUrl||!data.downloadUrl.startsWith(config.url.replace(/\\/$/,''))){
+    if(!data.downloadUrl||!data.downloadUrl.startsWith((config.url.endsWith('/') ? config.url.slice(0,-1) : config.url))){
       throw new Error('Cloud upload succeeded but no valid card download link was returned.');
     }
     return data.downloadUrl;
