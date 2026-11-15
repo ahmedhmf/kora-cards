@@ -37,33 +37,3 @@
   color:#fff;
   background:rgba(0,0,0,.7);
 }
-
-/* Only the new photo template has a live player positioning gate. */
-.live-card-frame .framing-outline{
-  position:absolute;inset:0;z-index:4;width:100%;height:100%;
-  pointer-events:none;overflow:visible;
-  color:#ffe050;
-  filter:drop-shadow(0 0 4px rgba(0,0,0,.9));
-}
-.live-card-frame .framing-outline path{
-  fill:rgba(255,224,80,.045);
-  stroke:currentColor;stroke-width:6;stroke-linejoin:round;
-  stroke-dasharray:18 10;transition:stroke .2s ease;
-}
-.live-card-frame .framing-outline.framing-ready{color:#38ed70;filter:drop-shadow(0 0 7px rgba(56,237,112,.8))}
-.live-card-frame .framing-outline.framing-ready path{stroke-dasharray:none;fill:rgba(56,237,112,.035)}
-.live-card-frame .framing-outline.framing-unavailable{color:#aaa}
-.live-card-frame .framing-feedback{
-  position:absolute;left:50%;top:8px;z-index:8;transform:translateX(-50%);
-  background:rgba(0,0,0,.88);border:2px solid #ffe050;border-radius:18px;
-  color:#fff;padding:8px 12px;font:700 12px "Chakra Petch",sans-serif;
-  max-width:95%;width:max-content;text-align:center;line-height:1.3;
-  display:flex;align-items:center;gap:7px;justify-content:center;
-  pointer-events:none;
-}
-.live-card-frame .framing-feedback.framing-ready{border-color:#38ed70;background:rgba(4,56,21,.9)}
-.live-card-frame .framing-feedback.framing-unavailable{border-color:#aaa}
-.live-card-frame .framing-dot{width:9px;height:9px;border-radius:50%;background:#ffe050;flex:none}
-.live-card-frame .framing-ready .framing-dot{background:#38ed70}
-.live-card-frame .framing-unavailable .framing-dot{background:#aaa}
-.iphone-shutter-button:disabled{opacity:.48;cursor:not-allowed}
