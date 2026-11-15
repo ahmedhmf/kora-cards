@@ -1,58 +1,83 @@
-# KORA — Supabase card uploads and QR downloads
+# KORA PWA — Supabase QR card downloads (no staff or customer login)
 
-The photo booth uploads **only the completed, composed card PNG** after ORMBG finishes.
-It does **not** upload the original photo, the person's telephone number,
-player details as separate records, or a database row. Player names and card
-stats may of course be **visible inside the rendered PNG**.
+KORA uploads **only the fully rendered 877×1558 KORA player card PNG** to
+a private Supabase Storage bucket. It does not upload the original camera
+photo, the WhatsApp phone number, or separate player-details records.
+The player name and stats are **visible within the finished PNG**.
 
-## One-time Supabase setup
+## Customer flow
 
-1. Create a Supabase project and open **Storage**.
-2. Run `supabase/kora-cards-storage.sql` in the project's SQL Editor. This
-   creates a **private** `kora-cards` bucket and restrictive storage policies.
-3. In **Authentication > Users**, create or invite a dedicated KORA staff user.
-   In SQL Editor, execute:
-   ```sql
-   insert into public.kora_storage_staff (user_id)
-   values ('STAFF_USER_UUID_FROM_SUPABASE_AUTH');
+1. Enter player details and **check the cloud storage consent box**.
+2. Capture/upload photo → ORMBG renders the finished card.
+3. The PWA posts the final PNG to a server-side Supabase Edge Function.
+4. If upload succeeds, the server returns a **seven-day private signed download URL**.
+5. KORA generates a QR code **on the device**. The guest scans it and downloads
+   the PNG on their own phone. There are **no staff/customer credentials**.
+
+If the checkbox is unchecked, no cloud upload occurs and no QR is shown.
+If cloud storage fails, Save and Print continue to work.
+
+## One-time owner/developer setup (not an event staff login)
+
+1. Create a Supabase project.
+2. Run `supabase/kora-cards-storage.sql` in **Supabase SQL Editor**. It creates a
+   private bucket, limits files to PNGs smaller than 10 MB, and defines an
+   atomic rate-limit function. No public Storage INSERT/SELECT policies.
+3. In `src/environments/supabase-storage.config.ts` replace the placeholder
+   project URL and **publishable key** (or legacy anon key). These values are
+   public; do not put a Supabase secret/service_role key into the PWA.
+4. Configure Supabase Edge Function secrets:
+   - `KORA_ALLOWED_ORIGINS` — comma-separated exact **PWA origins**
+     (e.g., `https://cards.example.com,https://kora.example.com`).
+     No trailing slash, no path. Include your localhost origin only for testing.
+   - `KORA_RATE_LIMIT_SALT` — unique long random string used to hash rate-limit
+     identifiers on the server. Keep it secret.
+   - The function uses Supabase's server-provided `SUPABASE_URL` and
+     `SUPABASE_SECRET_KEYS` (or legacy `SUPABASE_SERVICE_ROLE_KEY`) to access
+     the private bucket. Those server-side credentials are **never sent to users**.
+5. Deploy the function with the Supabase CLI:
+   ```bash
+   supabase login
+   supabase link --project-ref YOUR_PROJECT_REF
+   supabase secrets set KORA_ALLOWED_ORIGINS=https://your-pwa-origin.example KORA_RATE_LIMIT_SALT=REPLACE_WITH_RANDOM_SECRET
+   supabase functions deploy kora-card-upload
    ```
-4. In `src/environments/supabase-storage.config.ts`, set your Supabase URL
-   and **publishable** (or legacy anon) key. Never place a service_role or secret
-   key in browser code. Rebuild and redeploy.
-5. KORA staff open the collapsible **KORA STAFF · SUPABASE STORAGE** settings
-   in the card details screen and sign in with the dedicated staff account.
-   The kiosk keeps the staff session in browser `sessionStorage` and can
-   refresh its access token while the session persists.
-6. A customer checks the **cloud storage consent** box, completes the player card
-   and takes or uploads a photo. After the final card PNG is rendered, upload
-   happens without a customer login. Print/Save are not blocked by the upload.
-7. On success, KORA generates a **QR code locally** for a private signed
-   download link valid for **seven days**. The customer's phone needs internet
-   access to download. No QR-code provider receives the signed URL.
+   `supabase/config.toml` sets `verify_jwt = false` for this endpoint,
+   because guests are not required to log in. **Deploy the function and
+   server-side limits before enabling cloud uploads in production.**
+6. Rebuild and deploy the PWA. No staff login is shown.
 
-## Important behavior
+## Security and operational notes
 
-- If no staff member is signed in, or no customer consent is given, **no upload**
-  occurs and no QR is shown.
-- If the network is unavailable, the customer can still save or print locally.
-  Failed uploads are reported and **are not automatically queued/retried**.
-- A QR/download URL grants temporary access to **that specific PNG**. Treat it
-  like a private link. Signed links expire after seven days, but the stored PNG
-  remains in the private bucket until deleted by an authorized administrator.
-  Establish a retention and deletion policy before using this at public events.
-- The printer and WhatsApp features stay separate. WhatsApp currently opens a
-  text chat and does not attach the card image automatically.
-- The SQL upload policy limits a staff user to their own UUID folder.
-  Creating signed URLs requires a corresponding SELECT policy.
-- Never open the staff account or Supabase dashboard for customers.
+- The storage bucket is private; the Edge Function uses server credentials to
+  upload and sign one temporary download URL. People with the QR URL can
+  download that card until the link expires (seven days).
+- The endpoint checks an exact browser origin, a consent header, PNG signature,
+  expected card dimensions (877×1558), 10 MB size cap and an atomic
+  per-source-IP quota of 120 uploads/hour. **Origin headers and a consent flag
+  are not proof of a trusted or human caller.** Public endpoints can still
+  be abused. For a large public deployment, add gateway throttling, a bot
+  challenge or a device-specific authentication scheme and usage monitoring.
+- No customer logins, no staff logins and no database row containing user
+  details are required. The quota table stores salted hashes, not raw IPs,
+  but you still need an appropriate data-retention policy.
+- Signed-link expiration **does not delete an image from Supabase**.
+  Establish a photo retention/deletion policy (and quota-log cleanup) before
+  live events. Delete photos according to the customer's consent terms.
+- Online access is required for the PWA to upload and for customers to scan
+  and download. Failed uploads are not queued for automatic retry.
+- QR codes are generated locally; no third-party QR service sees signed URLs.
+- The card is sent as a raw PNG request body. No phone number or original
+  image is included in the request.
 
-## Validation checklist
+## Validate before merging
 
-- `npm install && npm run build`
-- Staff sign-in and refresh, incorrect password, lost internet, expired token
-- Both camera and photo-upload card flows
-- No QR before successful upload and explicit customer consent
-- QR scanning with a second phone, image downloading and seven-day expiry
-- Verify Supabase bucket is private and contains only `image/png`
-- Reset/home clears customer data but preserves the staff kiosk session
-- Rebuild and redeploy after editing `supabase-storage.config.ts`
+- `npm ci && npm run build`
+- Consent checked and unchecked paths
+- Supabase Edge Function deployed and bucket confirmed private
+- QR opens photo download on a second phone
+- Browser-origin restrictions, disallowed MIME/size, quota and internet failure
+- Card image still downloadable/printable even on cloud failure
+- QR should not appear unless the upload and signed URL succeeded
+- Check the Supabase Storage objects and confirm only rendered PNGs are stored
+- Test installed PWA and normal mobile browser
