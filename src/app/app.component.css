@@ -55,12 +55,6 @@
 .cloud-consent-label{grid-column:1/-1;display:flex!important;align-items:flex-start;gap:10px;
  font-size:12px;line-height:1.4}
 .cloud-consent-label input[type=checkbox]{width:18px;height:18px;min-width:18px;accent-color:#ed1c24}
-.cloud-staff-settings{margin:8px 0;padding:10px 12px;border:1px solid rgba(255,255,255,.18);
- border-radius:8px;background:rgba(0,0,0,.35);font-size:12px}
-.cloud-staff-settings summary{cursor:pointer;font-weight:700}
-.cloud-staff-inputs{display:grid;gap:8px;padding:10px 0}
-.cloud-staff-inputs input{width:100%;min-height:38px}
-.cloud-staff-settings .secondary{margin:6px 6px 6px 0}
 .result .card-qr-panel{position:absolute;z-index:29;left:50%;bottom:160px;
  transform:translateX(-50%);width:min(80vw,245px);padding:11px 12px;
  background:rgba(5,12,10,.96);color:#fff;border:1px solid rgba(255,255,255,.35);
