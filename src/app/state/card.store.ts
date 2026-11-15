@@ -9,14 +9,15 @@ import {InactivityService} from '../core/inactivity.service';
 import {PhotoFilterService} from '../core/photo-filter.service';
 import {GoogleDriveService} from '../core/google-drive.service';
 import {SupabaseCardStorageService} from '../core/supabase-card-storage.service';
+import {qrDataUrl} from '../core/qr-code.util';
 import {GOOGLE_DRIVE_CONFIG} from '../../environments/google-drive.config';
 export type CardStage='intro'|'camera'|'countdown'|'recording'|'result';
 export type Experience='home'|'card'|'filter';
 export type FilterStage='source'|'camera'|'editor';
 export type CardDesign='blue-gold'|'red-black'|'white-red'|'mono-red';
 export type RenderEngine='legacy'|'template';
-interface CardState{experience:Experience;stage:CardStage;filterStage:FilterStage;facingMode:FacingMode;filterImageUrl:string;filterProcessed:boolean;cardMediaType:'image'|'video';countdown:number;error:string;isSharing:boolean;driveAvailable:boolean;driveUploading:boolean;driveMessage:string;cloudConnected:boolean;cloudBusy:boolean;cloudMessage:string;cloudConsent:boolean;cardLoading:boolean;playerName:string;instagramHandle:string;phoneNumber:string;whatsappError:string;playerPosition:string;playerNumber:number;cardDesign:CardDesign;renderEngine:RenderEngine;replayUrl:string;mediaStream:MediaStream|null;matchedPlayer:RatedPlayer}
-const initialState:CardState={experience:'card',stage:'intro',filterStage:'source',facingMode:'environment',filterImageUrl:'',filterProcessed:false,cardMediaType:'video',countdown:3,error:'',isSharing:false,driveAvailable:!GOOGLE_DRIVE_CONFIG.clientId.startsWith('PASTE_'),driveUploading:false,driveMessage:'',cloudConnected:false,cloudBusy:false,cloudMessage:'',cloudConsent:false,cardLoading:false,playerName:'',instagramHandle:'',phoneNumber:'',whatsappError:'',playerPosition:'ST',playerNumber:10,cardDesign:'blue-gold',renderEngine:'template',replayUrl:'',mediaStream:null,matchedPlayer:randomPlayer('ST')};
+interface CardState{experience:Experience;stage:CardStage;filterStage:FilterStage;facingMode:FacingMode;filterImageUrl:string;filterProcessed:boolean;cardMediaType:'image'|'video';countdown:number;error:string;isSharing:boolean;driveAvailable:boolean;driveUploading:boolean;driveMessage:string;cloudConnected:boolean;cloudBusy:boolean;cloudMessage:string;cloudConsent:boolean;cloudQrUrl:string;cloudQrImage:string;cardLoading:boolean;playerName:string;instagramHandle:string;phoneNumber:string;whatsappError:string;playerPosition:string;playerNumber:number;cardDesign:CardDesign;renderEngine:RenderEngine;replayUrl:string;mediaStream:MediaStream|null;matchedPlayer:RatedPlayer}
+const initialState:CardState={experience:'card',stage:'intro',filterStage:'source',facingMode:'environment',filterImageUrl:'',filterProcessed:false,cardMediaType:'video',countdown:3,error:'',isSharing:false,driveAvailable:!GOOGLE_DRIVE_CONFIG.clientId.startsWith('PASTE_'),driveUploading:false,driveMessage:'',cloudConnected:false,cloudBusy:false,cloudMessage:'',cloudConsent:false,cloudQrUrl:'',cloudQrImage:'',cardLoading:false,playerName:'',instagramHandle:'',phoneNumber:'',whatsappError:'',playerPosition:'ST',playerNumber:10,cardDesign:'blue-gold',renderEngine:'template',replayUrl:'',mediaStream:null,matchedPlayer:randomPlayer('ST')};
 export const CardStore=signalStore(
  {providedIn:'root'},withState(initialState),
  withMethods((store,camera=inject(CameraService),renderer=inject(CardRendererService),templateRenderer=inject(TemplateCardRendererService),exporter=inject(CardExportService),filter=inject(PhotoFilterService),drive=inject(GoogleDriveService),cloud=inject(SupabaseCardStorageService))=>{
@@ -93,7 +94,7 @@ export const CardStore=signalStore(
    async renderCard(video:HTMLVideoElement,canvas:HTMLCanvasElement){if(store.renderEngine()==='template'){patchState(store,{error:'Video is only available in Classic Cards.'});return;}patchState(store,{cardLoading:true,error:''});try{await (store.renderEngine()==='template'?templateRenderer:renderer).start(video,canvas,()=>({name:store.playerName(),instagramHandle:store.instagramHandle(),position:store.playerPosition(),number:store.playerNumber(),design:store.cardDesign(),match:store.matchedPlayer(),facingMode:store.facingMode()}))}catch(error){console.error(error);patchState(store,{error:'Card renderer could not start. Please reload.'})}finally{patchState(store,{cardLoading:false})}},
    async renderCardPhoto(image:HTMLImageElement,canvas:HTMLCanvasElement){
      const current=flowVersion;
-     patchState(store,{cardLoading:true,error:'',cloudMessage:''});
+     patchState(store,{cardLoading:true,error:'',cloudMessage:'',cloudQrUrl:'',cloudQrImage:''});
      try{
        await (store.renderEngine()==='template'?templateRenderer:renderer).renderImage(image,canvas,()=>({
          name:store.playerName(),instagramHandle:store.instagramHandle(),position:store.playerPosition(),
@@ -107,12 +108,17 @@ export const CardStore=signalStore(
            const file=await exporter.createImageBlob(canvas);
            if(current===flowVersion)patchState(store,{cloudBusy:true,cloudMessage:'Uploading card to Supabase…'});
            // Do not block saving, printing, or the next person while storage works.
-           void cloud.uploadCard(file).then(()=>{
-             if(current===flowVersion)patchState(store,{cloudConnected:true,cloudMessage:'Card saved securely to Supabase.'});
+           void cloud.uploadCard(file).then(async path=>{
+             const downloadUrl=await cloud.signedDownloadUrl(path);
+             const qrImage=qrDataUrl(downloadUrl);
+             if(current===flowVersion)patchState(store,{
+               cloudConnected:true,cloudMessage:'Card ready to download! Scan the QR code with your phone.',
+               cloudQrUrl:downloadUrl,cloudQrImage:qrImage
+             });
            }).catch(error=>{
-             console.error('KORA cloud upload failed',error);
+             console.error('KORA cloud upload or QR generation failed',error);
              if(current===flowVersion)patchState(store,{cloudConnected:cloud.connected,
-               cloudMessage:error instanceof Error?error.message:'Cloud upload failed. Save the card locally.'});
+               cloudMessage:error instanceof Error?error.message:'Could not prepare cloud download. Save the card locally.'});
            }).finally(()=>{
              if(current===flowVersion)patchState(store,{cloudBusy:false});
            });
