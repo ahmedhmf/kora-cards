@@ -63,7 +63,8 @@ export const CardStore=signalStore(
     }
     patchState(store,{whatsappError:''});
     const player=store.playerName().trim()||'KORA STAR';
-    const message=`⚽ Your KORA player card for ${player} is ready! 📸`;
+    const link=store.cloudQrUrl();
+    const message=`⚽ Your KORA player card for ${player} is ready! 📸${link ? `\nDownload your card (link valid for 7 days): ${link}` : '\nSave and attach your card photo to this chat.'}`;
     // This opens a prefilled text conversation; wa.me cannot attach a canvas.
     window.location.assign(`https://wa.me/${digits}?text=${encodeURIComponent(message)}`);
    },
