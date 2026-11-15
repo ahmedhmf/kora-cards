@@ -1,0 +1,4 @@
+# Customer-facing function has no Supabase user JWT.
+# It enforces origin checks, size/format validation, quota, and private server-side Storage.
+[functions.kora-card-upload]
+verify_jwt = false
