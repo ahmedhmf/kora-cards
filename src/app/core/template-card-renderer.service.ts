@@ -10,6 +10,8 @@ export class TemplateCardRendererService {
   private readonly height = 1558;
   private template = new Image();
   private templatePromise?: Promise<void>;
+  private frameId?: number;
+  private generation = 0;
   private loadTemplate(): Promise<void> {
     if (!this.templatePromise) {
       this.templatePromise = new Promise<void>((resolve, reject) => {
