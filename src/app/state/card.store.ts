@@ -178,5 +178,5 @@ export const CardStore=signalStore(
    finally{patchState(store,{driveUploading:false});}
   }
  }),
- withHooks((store)=>{const inactivity=inject(InactivityService),cloud=inject(SupabaseCardStorageService);return{onInit(){patchState(store,{cloudConnected:cloud.connected});inactivity.start(30000,()=>{if(store.experience()!=='home')store.resetToHome()})},onDestroy(){inactivity.stop();store.destroy()}}})
+ withHooks((store)=>{const inactivity=inject(InactivityService),cloud=inject(SupabaseCardStorageService);return{onInit(){patchState(store,{cloudConnected:cloud.connected});inactivity.start(120000,()=>{if(store.experience()!=='home')store.resetToHome()})},onDestroy(){inactivity.stop();store.destroy()}}})
 );
