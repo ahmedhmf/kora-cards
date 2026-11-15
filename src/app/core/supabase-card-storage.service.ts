@@ -117,7 +117,10 @@ export class SupabaseCardStorageService {
     }
     const data=await response.json() as {signedURL?:string};
     if(!data.signedURL)throw new Error('Supabase did not return a signed download link');
-    const signed=new URL(data.signedURL,`${this.base()}/storage/v1/`);
+    const signedPath=data.signedURL.startsWith('/storage/v1/')
+      ? data.signedURL.slice('/storage/v1/'.length)
+      : data.signedURL.replace(/^\\/+/, '');
+    const signed=new URL(signedPath,`${this.base()}/storage/v1/`);
     if(signed.origin!==new URL(this.base()).origin)throw new Error('Unexpected Supabase download host');
     signed.searchParams.set('download','kora-card.png');
     return signed.toString();
