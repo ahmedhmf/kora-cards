@@ -4,7 +4,6 @@ import {CameraService, FacingMode} from '../core/camera.service';
 import {CardExportService} from '../core/card-export.service';
 import {CardRendererService} from '../core/card-renderer.service';
 import {TemplateCardRendererService} from '../core/template-card-renderer.service';
-import {MobileBackgroundRemovalService} from '../core/mobile-background-removal.service';
 import {RatedPlayer,randomPlayer} from '../data/fc27-players.data';
 import {InactivityService} from '../core/inactivity.service';
 import {PhotoFilterService} from '../core/photo-filter.service';
@@ -15,11 +14,11 @@ export type Experience='home'|'card'|'filter';
 export type FilterStage='source'|'camera'|'editor';
 export type CardDesign='blue-gold'|'red-black'|'white-red'|'mono-red';
 export type RenderEngine='legacy'|'template';
-interface CardState{experience:Experience;stage:CardStage;filterStage:FilterStage;facingMode:FacingMode;filterImageUrl:string;filterProcessed:boolean;cardMediaType:'image'|'video';countdown:number;error:string;isSharing:boolean;driveAvailable:boolean;driveUploading:boolean;driveMessage:string;cardLoading:boolean;playerName:string;instagramHandle:string;playerPosition:string;playerNumber:number;cardDesign:CardDesign;renderEngine:RenderEngine;comparisonOpen:boolean;comparisonBusy:boolean;comparisonModnet:string;comparisonOrmbg:string;comparisonError:string;replayUrl:string;mediaStream:MediaStream|null;matchedPlayer:RatedPlayer}
-const initialState:CardState={experience:'card',stage:'intro',filterStage:'source',facingMode:'environment',filterImageUrl:'',filterProcessed:false,cardMediaType:'video',countdown:3,error:'',isSharing:false,driveAvailable:!GOOGLE_DRIVE_CONFIG.clientId.startsWith('PASTE_'),driveUploading:false,driveMessage:'',cardLoading:false,playerName:'',instagramHandle:'',playerPosition:'ST',playerNumber:10,cardDesign:'blue-gold',renderEngine:'legacy',comparisonOpen:false,comparisonBusy:false,comparisonModnet:'',comparisonOrmbg:'',comparisonError:'',replayUrl:'',mediaStream:null,matchedPlayer:randomPlayer('ST')};
+interface CardState{experience:Experience;stage:CardStage;filterStage:FilterStage;facingMode:FacingMode;filterImageUrl:string;filterProcessed:boolean;cardMediaType:'image'|'video';countdown:number;error:string;isSharing:boolean;driveAvailable:boolean;driveUploading:boolean;driveMessage:string;cardLoading:boolean;playerName:string;instagramHandle:string;playerPosition:string;playerNumber:number;cardDesign:CardDesign;renderEngine:RenderEnginereplayUrl:string;mediaStream:MediaStream|null;matchedPlayer:RatedPlayer}
+const initialState:CardState={experience:'card',stage:'intro',filterStage:'source',facingMode:'environment',filterImageUrl:'',filterProcessed:false,cardMediaType:'video',countdown:3,error:'',isSharing:false,driveAvailable:!GOOGLE_DRIVE_CONFIG.clientId.startsWith('PASTE_'),driveUploading:false,driveMessage:'',cardLoading:false,playerName:'',instagramHandle:'',playerPosition:'ST',playerNumber:10,cardDesign:'blue-gold',renderEngine:'legacy',replayUrl:'',mediaStream:null,matchedPlayer:randomPlayer('ST')};
 export const CardStore=signalStore(
  {providedIn:'root'},withState(initialState),
- withMethods((store,camera=inject(CameraService),renderer=inject(CardRendererService),templateRenderer=inject(TemplateCardRendererService),backgroundRemoval=inject(MobileBackgroundRemovalService),exporter=inject(CardExportService),filter=inject(PhotoFilterService),drive=inject(GoogleDriveService))=>{
+ withMethods((store,camera=inject(CameraService),renderer=inject(CardRendererService),templateRenderer=inject(TemplateCardRendererService),exporter=inject(CardExportService),filter=inject(PhotoFilterService),drive=inject(GoogleDriveService))=>{
   let clipUrl='',filterUrl='',flowVersion=0;
   const delay=(ms:number)=>new Promise<void>(resolve=>setTimeout(resolve,ms));
   const openCurrentCamera=async()=>{
@@ -38,56 +37,7 @@ export const CardStore=signalStore(
    setPosition(playerPosition:string){patchState(store,{playerPosition,matchedPlayer:randomPlayer(playerPosition,store.matchedPlayer().name)})},
    setNumber(value:number|string){const number=Math.max(0,Math.min(99,Number(value)||0));patchState(store,{playerNumber:number})},
    setCardDesign(cardDesign:CardDesign){patchState(store,{cardDesign})},
-   setRenderEngine(renderEngine:RenderEngine){renderer.stop();templateRenderer.stop();patchState(store,{renderEngine,comparisonOpen:false})},
-   toggleComparison(){
-    if(store.renderEngine()!=='template'||store.cardMediaType()!=='image')return;
-    if(store.comparisonBusy())return;
-    patchState(store,{comparisonOpen:!store.comparisonOpen(),comparisonError:''});
-   },
-   async runComparison(modnetCanvas:HTMLCanvasElement,ormbgCanvas:HTMLCanvasElement){
-    if(store.renderEngine()!=='template'||store.cardMediaType()!=='image'||store.comparisonBusy())return;
-    const photoUrl=store.replayUrl();
-    if(!photoUrl){patchState(store,{comparisonError:'No photo is available to compare.'});return}
-    patchState(store,{comparisonBusy:true,comparisonError:'',comparisonModnet:'Loading original photo…',comparisonOrmbg:'Queued…'});
-    let image:HTMLImageElement;
-    try{
-      image=await new Promise<HTMLImageElement>((resolve,reject)=>{
-        const photo=new Image();
-        photo.onload=()=>resolve(photo);
-        photo.onerror=()=>reject(new Error('The original photo could not be loaded.'));
-        photo.src=photoUrl;
-      });
-    }catch(error){
-      patchState(store,{comparisonBusy:false,comparisonError:error instanceof Error?error.message:'Photo load failed'});return;
-    }
-    const source=document.createElement('canvas');
-    const scale=Math.min(1,1024/image.naturalWidth,1536/image.naturalHeight);
-    source.width=Math.max(1,Math.round(image.naturalWidth*scale));
-    source.height=Math.max(1,Math.round(image.naturalHeight*scale));
-    source.getContext('2d')!.drawImage(image,0,0,source.width,source.height);
-    const paint=(canvas:HTMLCanvasElement,cutout?:HTMLCanvasElement)=>{
-      canvas.width=source.width;canvas.height=source.height;
-      const ctx=canvas.getContext('2d')!;
-      ctx.fillStyle='#ffffff';ctx.fillRect(0,0,canvas.width,canvas.height);
-      if(cutout)ctx.drawImage(cutout,0,0,canvas.width,canvas.height);
-    };
-    paint(modnetCanvas);paint(ormbgCanvas);
-    patchState(store,{comparisonError:'',comparisonModnet:'Processing…',comparisonOrmbg:'Queued…'});
-    try{
-      await backgroundRemoval.compareRaw(source,(model,result)=>{
-        const target=model==='modnet'?modnetCanvas:ormbgCanvas;
-        if('canvas' in result){
-          paint(target,result.canvas);
-          const label=`${result.milliseconds} ms total (includes loading) · ${result.transparentPercent}% transparent`;
-          patchState(store,model==='modnet'?{comparisonModnet:label}:{comparisonOrmbg:label});
-        }else{
-          patchState(store,model==='modnet'?{comparisonModnet:result.error}:{comparisonOrmbg:result.error});
-        }
-      });
-    }catch(error){
-      patchState(store,{comparisonError:error instanceof Error?error.message:'Comparison failed'});
-    }finally{patchState(store,{comparisonBusy:false})}
-   },
+   setRenderEngine(renderEngine:RenderEngine){renderer.stop();templateRenderer.stop();patchState(store,{renderEngine})},
    setFacingMode(facingMode:FacingMode){
     if(store.facingMode()===facingMode)return;
     patchState(store,{facingMode});
