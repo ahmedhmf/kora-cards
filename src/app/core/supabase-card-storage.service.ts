@@ -15,7 +15,7 @@ export class SupabaseCardStorageService {
       !config.publishableKey.startsWith('PASTE_');
   }
 
-  async uploadCard(blob:Blob):Promise<string>{
+  async uploadCard(blob:Blob,linkToken?:string):Promise<string>{
     if(!this.configured)throw new Error('KORA cloud storage is not configured yet.');
     if(blob.type!=='image/png'||!blob.size||blob.size>10*1024*1024){
       throw new Error('Only completed KORA card PNGs smaller than 10 MB can be uploaded.');
@@ -26,6 +26,7 @@ export class SupabaseCardStorageService {
       headers:{
         'Content-Type':'image/png',
         'x-kora-consent':'yes',
+        ...(linkToken?{'x-kora-registration-token':linkToken}:{}),
         apikey:config.publishableKey,
       },
       body:blob,
