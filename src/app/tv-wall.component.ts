@@ -8,7 +8,7 @@ interface WallTile { front:WallCard|null; back:WallCard|null; flipped:boolean; }
 interface WallPage { cards:WallCard[]; nextOffset:number|null; error?:string; }
 
 @Component({
-  selector:'kora-tv-wall',
+  selector:'app-root',
   standalone:true,
   imports:[CommonModule,FormsModule],
   templateUrl:'./tv-wall.component.html',
