@@ -29,6 +29,7 @@ export class TvWallComponent implements OnInit,OnDestroy {
   private tileCursor=0;
   private cardCursor=0;
   private refreshing=false;
+  private lastFullLoad=0;
   private aborted=false;
   private controller?:AbortController;
 
@@ -55,7 +56,7 @@ export class TvWallComponent implements OnInit,OnDestroy {
       await this.populate(result);
       this.stopTimers();
       this.flipTimer=setInterval(()=>this.flipOne(),3500);
-      this.refreshTimer=setInterval(()=>{void this.refresh()},60000);
+      this.refreshTimer=setInterval(()=>{void this.refresh()},30000);
     }catch(err){
       this.connected.set(false);
       this.error.set(err instanceof Error?err.message:'Could not open the KORA wall.');
@@ -71,6 +72,7 @@ export class TvWallComponent implements OnInit,OnDestroy {
     this.accessCode.set('');
     this.cardCursor=0;
     this.tileCursor=0;
+    this.lastFullLoad=0;
     sessionStorage.removeItem('kora-wall-session-code');
   }
   private stopTimers():void{
@@ -116,24 +118,26 @@ export class TvWallComponent implements OnInit,OnDestroy {
     if(this.aborted||!this.connected())return;
     const known=new Map<string,WallCard>();
     for(const card of collected)known.set(card.path,card);
-    const items=[...known.values()];
+    this.lastFullLoad=Date.now();
+    this.applyCards([...known.values()]);
+  }
+  private applyCards(items:WallCard[]):void{
     const oldItems=this.cards();
     const priorPaths=new Set(oldItems.map(item=>item.path));
     const hasNewCards=items.some(item=>!priorPaths.has(item.path));
     this.cards.set(items);
     this.lastUpdated.set(new Date().toLocaleTimeString());
+    const known=new Map(items.map(item=>[item.path,item]));
     if(oldItems.length<=16){
       // Fill brand-placeholder slots as soon as new cards arrive.
       this.tiles.set(Array.from({length:16},(_,i)=>({front:items[i]??null,back:null,flipped:false})));
       this.cardCursor=Math.min(16,items.length);
     }else{
-      // Keep existing visible cards and renew their expiring signed URLs.
       this.tiles.update(tiles=>tiles.map(tile=>({
         ...tile,
         front:tile.front?known.get(tile.front.path)??tile.front:null,
         back:tile.back?known.get(tile.back.path)??tile.back:null,
       })));
-      // Prioritize new arrivals, otherwise continue cycling through everyone.
       this.cardCursor=hasNewCards?0:this.cardCursor%Math.max(1,items.length);
     }
   }
@@ -143,7 +147,15 @@ export class TvWallComponent implements OnInit,OnDestroy {
     this.controller=new AbortController();
     try{
       const result=await this.fetchPage(0);
-      await this.populate(result);
+      if(Date.now()-this.lastFullLoad>4*60*1000||this.cards().length<=80||result.nextOffset===null){
+        // Renew all signed links periodically and discover older pages.
+        await this.populate(result);
+      }else{
+        // Poll only the newest page every 30 seconds, avoiding a large
+        // re-download of hundreds of signed images on each poll.
+        const freshPaths=new Set(result.cards.map(card=>card.path));
+        this.applyCards([...result.cards,...this.cards().filter(card=>!freshPaths.has(card.path))]);
+      }
       this.error.set('');
     }catch(err){
       if(!this.aborted)this.error.set(err instanceof Error?err.message:'Connection lost. Retrying…');
