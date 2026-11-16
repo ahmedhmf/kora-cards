@@ -10,6 +10,15 @@ Open `/wall` on the deployed KORA PWA (for example,
   continually cycling through the available event-approved cards.
 - Checks for new cards every 30 seconds and refreshes the full collection and\n  signed download URLs approximately every 4 minutes.
 - Pages through the server's data in groups of 80, supporting large events.
+- Displays a **separate QR code next to each photo** in the 4×4 wall, on
+  both sides of a flipping tile. Each QR opens that specific finished card.
+  Click/tap a small QR to show a **larger scan-friendly QR and card**.
+- QR images are generated locally using KORA's existing QR utility, so no
+  external QR provider receives private signed download URLs.
+- Wall QR codes use short-lived signed URLs (currently 10 minutes) and are
+  refreshed in the background. Because the TV has 16 cards on screen, QR
+  readability depends on screen size and viewing distance; use the enlarge
+  view for reliable scanning from farther away.
 - Has a browser fullscreen control and a **LOCK** button to clear the access code.
 - When fewer than 16 cards have arrived, unused slots show KORA branding.
 - Only shows the **finished PNG**, never any name, email, telephone, Instagram
