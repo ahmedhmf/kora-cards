@@ -43,3 +43,52 @@
 .wall-lock small{font-size:11px;color:#838c88}
 @media(prefers-reduced-motion:reduce){.wall-flipper,.wall-live i{animation:none;transition:none}}
 @media(max-width:800px){.wall-header-btn{padding:5px 7px}.wall-brand-copy span{display:none}.wall-head-right{gap:6px}.wall-shell{padding:9px}.wall-grid{gap:4px}.wall-tile{padding:2px}.wall-bottom{letter-spacing:.02em}}
+
+/* Side-by-side photo + QR for every card, including rotating card backs. */
+.wall-card-pair{
+  width:100%;height:100%;min-width:0;min-height:0;
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(52px,34%);
+  align-items:center;justify-items:center;column-gap:clamp(3px,.3vw,8px);
+  padding:2px;
+}
+.wall-player-img{
+  display:block;width:100%;height:100%;min-height:0;min-width:0;
+  object-fit:contain;filter:drop-shadow(0 3px 7px rgba(0,0,0,.38));
+}
+.wall-qr-side{
+  width:100%;max-width:126px;min-width:0;border:0;border-radius:4px;
+  padding:clamp(3px,.35vw,8px);background:#fff;color:#101010;
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  cursor:pointer;align-self:center;box-shadow:0 3px 12px rgba(0,0,0,.3);
+}
+.wall-qr-side img{display:block;width:100%;height:auto;aspect-ratio:1/1;object-fit:contain;image-rendering:pixelated}
+.wall-qr-side span{font:900 clamp(7px,.65vw,12px) "Chakra Petch",Arial,sans-serif;letter-spacing:.1em}
+.wall-qr-side:focus-visible{outline:3px solid #ed1c24;outline-offset:2px}
+/* TV guests can enlarge a QR if the 4x4 grid is too small to scan at distance. */
+.wall-qr-modal{
+  position:fixed;inset:0;background:rgba(0,0,0,.91);
+  display:grid;place-items:center;z-index:100;padding:clamp(20px,4vw,65px)
+}
+.wall-qr-modal-inner{
+  position:relative;width:min(1150px,95vw);max-height:90vh;
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,1fr);
+  align-items:center;gap:clamp(20px,4vw,70px);
+  background:linear-gradient(135deg,#1e2522,#101413);
+  border:1px solid #535d55;border-radius:16px;
+  padding:clamp(18px,3vw,48px);
+  box-shadow:0 25px 100px rgba(0,0,0,.65)
+}
+.wall-qr-modal-card{width:100%;max-height:76vh;object-fit:contain}
+.wall-qr-modal-scan{display:flex;align-items:center;flex-direction:column;gap:17px;text-align:center}
+.wall-qr-modal-scan strong{color:#fff;font-size:clamp(18px,2.3vw,37px);letter-spacing:.08em}
+.wall-qr-modal-scan>img{width:min(100%,330px);background:#fff;border-radius:8px;padding:14px;image-rendering:pixelated}
+.wall-qr-modal-scan p{margin:0;font-size:clamp(13px,1.3vw,21px);color:#fff}
+.wall-qr-modal-scan small{color:#b0b8b4}
+.wall-qr-dismiss{position:absolute;top:9px;right:15px;background:transparent;border:0;color:#fff;font-size:40px;cursor:pointer}
+@media(max-width:800px){
+ .wall-card-pair{grid-template-columns:minmax(0,1fr) minmax(28px,34%);column-gap:2px}
+ .wall-qr-side{padding:2px;gap:0}
+ .wall-qr-side span{font-size:6px}
+ .wall-qr-modal-inner{grid-template-columns:1fr;overflow:auto}
+ .wall-qr-modal-card{max-height:33vh}
+}
