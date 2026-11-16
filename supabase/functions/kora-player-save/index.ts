@@ -27,6 +27,11 @@ function reply(status:number,payload:Record<string,unknown>,origin:string){
     'Access-Control-Allow-Headers':'apikey,content-type,x-kora-data-consent,authorization,x-client-info',
   }});
 }
+async function hashLinkToken(token:string){
+  const input=new TextEncoder().encode(salt+'|registration-link|'+token);
+  const digest=await crypto.subtle.digest('SHA-256',input);
+  return [...new Uint8Array(digest)].map(byte=>byte.toString(16).padStart(2,'0')).join('');
+}
 async function hashedIp(ip:string){
   const bytes=new TextEncoder().encode(salt+'|'+ip);
   const digest=await crypto.subtle.digest('SHA-256',bytes);
@@ -101,14 +106,17 @@ Deno.serve(async request=>{
     if(quotaError)throw quotaError;
     if(!allowed)return reply(429,{error:'Too many registrations. Please try again later'},origin);
 
-    const {data,error}=await admin.from('kora_player_registrations').insert({
+    // One-time capability for linking THIS guest's completed PNG to their
+    // private registration. Never expose database IDs or secret keys.
+    const linkToken=crypto.randomUUID();
+    const {error}=await admin.from('kora_player_registrations').insert({
       name,email,instagram,telephone,position,
       shirt_number:shirtNumber,card_cloud_consent:cloudConsent,
       data_consent_version:'v1',
-    }).select('id').single();
+      card_link_token_hash:cloudConsent?await hashLinkToken(linkToken):null,
+    });
     if(error)throw error;
-    if(!data?.id)throw new Error('Registration insert did not return an id');
-    return reply(201,{saved:true},origin);
+    return reply(201,{saved:true,linkToken:cloudConsent?linkToken:null},origin);
   }catch(error){
     // Log details only server-side; never expose data, SQL errors or keys to PWA.
     console.error('KORA player registration failed',error);
