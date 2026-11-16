@@ -16,8 +16,8 @@ export type Experience='home'|'card'|'filter';
 export type FilterStage='source'|'camera'|'editor';
 export type CardDesign='blue-gold'|'red-black'|'white-red'|'mono-red';
 export type RenderEngine='legacy'|'template';
-interface CardState{experience:Experience;stage:CardStage;filterStage:FilterStage;facingMode:FacingMode;filterImageUrl:string;filterProcessed:boolean;cardMediaType:'image'|'video';countdown:number;error:string;isSharing:boolean;driveAvailable:boolean;driveUploading:boolean;driveMessage:string;cloudBusy:boolean;cloudMessage:string;cloudConsent:boolean;cloudQrUrl:string;cloudQrImage:string;cardLoading:boolean;playerName:string;playerEmail:string;instagramHandle:string;phoneNumber:string;whatsappError:string;playerPosition:string;playerNumber:number;cardDesign:CardDesign;renderEngine:RenderEngine;replayUrl:string;mediaStream:MediaStream|null;matchedPlayer:RatedPlayer}
-const initialState:CardState={experience:'card',stage:'intro',filterStage:'source',facingMode:'environment',filterImageUrl:'',filterProcessed:false,cardMediaType:'video',countdown:3,error:'',isSharing:false,driveAvailable:!GOOGLE_DRIVE_CONFIG.clientId.startsWith('PASTE_'),driveUploading:false,driveMessage:'',cloudBusy:false,cloudMessage:'',cloudConsent:false,cloudQrUrl:'',cloudQrImage:'',cardLoading:false,playerName:'',playerEmail:'',instagramHandle:'',phoneNumber:'',whatsappError:'',playerPosition:'ST',playerNumber:10,cardDesign:'blue-gold',renderEngine:'template',replayUrl:'',mediaStream:null,matchedPlayer:randomPlayer('ST')};
+interface CardState{experience:Experience;stage:CardStage;filterStage:FilterStage;facingMode:FacingMode;filterImageUrl:string;filterProcessed:boolean;cardMediaType:'image'|'video';countdown:number;error:string;isSharing:boolean;driveAvailable:boolean;driveUploading:boolean;driveMessage:string;cloudBusy:boolean;cloudMessage:string;cloudConsent:boolean;cloudQrUrl:string;cloudQrImage:string;qrPopupOpen:boolean;cardLoading:boolean;playerName:string;playerEmail:string;instagramHandle:string;phoneNumber:string;whatsappError:string;playerPosition:string;playerNumber:number;cardDesign:CardDesign;renderEngine:RenderEngine;replayUrl:string;mediaStream:MediaStream|null;matchedPlayer:RatedPlayer}
+const initialState:CardState={experience:'card',stage:'intro',filterStage:'source',facingMode:'environment',filterImageUrl:'',filterProcessed:false,cardMediaType:'video',countdown:3,error:'',isSharing:false,driveAvailable:!GOOGLE_DRIVE_CONFIG.clientId.startsWith('PASTE_'),driveUploading:false,driveMessage:'',cloudBusy:false,cloudMessage:'',cloudConsent:false,cloudQrUrl:'',cloudQrImage:'',qrPopupOpen:false,cardLoading:false,playerName:'',playerEmail:'',instagramHandle:'',phoneNumber:'',whatsappError:'',playerPosition:'ST',playerNumber:10,cardDesign:'blue-gold',renderEngine:'template',replayUrl:'',mediaStream:null,matchedPlayer:randomPlayer('ST')};
 export const CardStore=signalStore(
  {providedIn:'root'},withState(initialState),
  withMethods((store,camera=inject(CameraService),renderer=inject(CardRendererService),templateRenderer=inject(TemplateCardRendererService),exporter=inject(CardExportService),filter=inject(PhotoFilterService),drive=inject(GoogleDriveService),cloud=inject(SupabaseCardStorageService))=>{
@@ -54,6 +54,8 @@ export const CardStore=signalStore(
    setInstagramHandle(instagramHandle:string){patchState(store,{instagramHandle})},
    setPhoneNumber(phoneNumber:string){patchState(store,{phoneNumber,whatsappError:''})},
    setCloudConsent(cloudConsent:boolean){patchState(store,{cloudConsent})},
+   toggleQrPopup(){if(store.cloudQrImage())patchState(store,{qrPopupOpen:!store.qrPopupOpen()})},
+   closeQrPopup(){patchState(store,{qrPopupOpen:false})},
    openWhatsApp(){
     if(store.cardLoading()||store.error()||store.cardMediaType()!=='image')return;
     // WhatsApp click-to-chat requires the country code and digits only.
@@ -97,7 +99,7 @@ export const CardStore=signalStore(
    async renderCard(video:HTMLVideoElement,canvas:HTMLCanvasElement){if(store.renderEngine()==='template'){patchState(store,{error:'Video is only available in Classic Cards.'});return;}patchState(store,{cardLoading:true,error:''});try{await (store.renderEngine()==='template'?templateRenderer:renderer).start(video,canvas,()=>({name:store.playerName(),instagramHandle:store.instagramHandle(),position:store.playerPosition(),number:store.playerNumber(),design:store.cardDesign(),match:store.matchedPlayer(),facingMode:store.facingMode()}))}catch(error){console.error(error);patchState(store,{error:'Card renderer could not start. Please reload.'})}finally{patchState(store,{cardLoading:false})}},
    async renderCardPhoto(image:HTMLImageElement,canvas:HTMLCanvasElement){
      const current=flowVersion;
-     patchState(store,{cardLoading:true,error:'',cloudMessage:'',cloudQrUrl:'',cloudQrImage:''});
+     patchState(store,{cardLoading:true,error:'',cloudMessage:'',cloudQrUrl:'',cloudQrImage:'',qrPopupOpen:false});
      try{
        await (store.renderEngine()==='template'?templateRenderer:renderer).renderImage(image,canvas,()=>({
          name:store.playerName(),instagramHandle:store.instagramHandle(),position:store.playerPosition(),
@@ -110,7 +112,7 @@ export const CardStore=signalStore(
          void cloud.uploadCard(file).then(downloadUrl=>{
            const qrImage=qrDataUrl(downloadUrl);
            if(current===flowVersion)patchState(store,{
-             cloudMessage:'Scan the QR code to download your KORA card.',
+             cloudMessage:'Your card is ready. Tap QR in the toolbar to download.',
              cloudQrUrl:downloadUrl,cloudQrImage:qrImage
            });
          }).catch(error=>{
