@@ -170,10 +170,11 @@ export class TemplateCardRendererService {
   }
 
   /**
-   * Fast, non-AI black-backdrop preview. Only remove dark neutral regions
-   * connected to the frame edges; enclosed dark hair/clothes remain intact.
-   * If the sampled backdrop is not black, show the unmodified live camera.
-   * The captured photo always uses ORMBG for the final card.
+   * Adaptive dark-backdrop chroma/luma key for the LIVE PREVIEW only.
+   * Camera auto-exposure makes black cloth look gray; derive the brightness
+   * threshold from the outer camera edges rather than assuming RGB < 70.
+   * Grow transparency from the edges to avoid punching holes in dark clothes.
+   * Final still photos always use ORMBG and are unaffected.
    */
   async startLivePreview(video: HTMLVideoElement, canvas: HTMLCanvasElement, getData: () => CardData) {
     this.stop();
@@ -187,13 +188,7 @@ export class TemplateCardRendererService {
     const sampleWidth = 256;
     let sampleCtx: CanvasRenderingContext2D | null = null;
     let lastPaint = 0;
-    // Dark and approximately neutral, rather than dark saturated clothing.
-    const isBackdrop = (r: number, g: number, b: number) => {
-      const max = Math.max(r, g, b);
-      const min = Math.min(r, g, b);
-      return max < 72 && max - min < 25 &&
-        (0.2126 * r + 0.7152 * g + 0.0722 * b) < 52;
-    };
+
     const tick = (time: number) => {
       if (generation !== this.generation) return;
       if (video.readyState >= 2 && time - lastPaint >= 130) {
@@ -218,35 +213,47 @@ export class TemplateCardRendererService {
             ctx.restore();
             const pixels = ctx.getImageData(0, 0, w, h);
             const rgba = pixels.data;
+            const lum = (i: number) =>
+              (rgba[i] * 54 + rgba[i + 1] * 183 + rgba[i + 2] * 19) / 256;
+            const chroma = (i: number) =>
+              Math.max(rgba[i], rgba[i + 1], rgba[i + 2]) -
+              Math.min(rgba[i], rgba[i + 1], rgba[i + 2]);
 
-            // Disable keying for non-black locations to protect the player.
-            const corners = [
-              [0.04, 0.06], [0.96, 0.06],
-              [0.04, 0.94], [0.96, 0.94],
-              [0.04, 0.5], [0.96, 0.5],
-            ];
-            let darkSamples = 0;
-            for (const [fx, fy] of corners) {
-              const x = Math.min(w - 1, Math.floor(fx * w));
-              const y = Math.min(h - 1, Math.floor(fy * h));
-              const i = (y * w + x) * 4;
-              if (isBackdrop(rgba[i], rgba[i + 1], rgba[i + 2])) darkSamples++;
+            // Sample edge strips, ignoring the central area where the player
+            // is most likely positioned. This tolerates non-pitch-black cloth.
+            const edgeLumas: number[] = [];
+            let neutralCount = 0;
+            for (let y = 2; y < h - 2; y += 5) {
+              for (let x = 2; x < w - 2; x += 5) {
+                if (x >= w * .14 && x <= w * .86 &&
+                    y >= h * .09 && y <= h * .91) continue;
+                const i = (y * w + x) * 4;
+                edgeLumas.push(lum(i));
+                if (chroma(i) < 48) neutralCount++;
+              }
             }
-
-            if (darkSamples >= 4) {
-              // Flood-fill only background pixels connected to the edges.
-              // This avoids deleting isolated dark sections within clothing.
+            edgeLumas.sort((a, b) => a - b);
+            const median = edgeLumas[Math.floor(edgeLumas.length / 2)] ?? 255;
+            // Black cloth can be gray under automatic exposure; if the edges
+            // are bright or multicolored, do not alter the camera feed.
+            const qualifies = median < 155 &&
+              neutralCount >= edgeLumas.length * .5;
+            if (qualifies) {
+              const threshold = Math.min(185, Math.max(72, median + 43));
+              const eligible = (pixel: number): boolean => {
+                const i = pixel * 4;
+                return lum(i) < threshold && chroma(i) < 68;
+              };
               const visited = new Uint8Array(w * h);
               const queue = new Int32Array(w * h);
               let head = 0, tail = 0;
               const enqueue = (index: number) => {
                 if (visited[index]) return;
                 visited[index] = 1;
-                const off = index * 4;
-                if (isBackdrop(rgba[off], rgba[off + 1], rgba[off + 2])) {
-                  queue[tail++] = index;
-                }
+                if (eligible(index)) queue[tail++] = index;
               };
+              // Seed all outer-edge dark pixels. This removes backdrop only
+              // where a contiguous path leads to the image boundary.
               for (let x = 0; x < w; x++) {
                 enqueue(x);
                 enqueue((h - 1) * w + x);
@@ -257,28 +264,36 @@ export class TemplateCardRendererService {
               }
               while (head < tail) {
                 const index = queue[head++];
-                rgba[index * 4 + 3] = 0;
+                const i = index * 4;
+                rgba[i + 3] = 0;
                 const x = index % w, y = (index / w) | 0;
                 if (x > 0) enqueue(index - 1);
                 if (x + 1 < w) enqueue(index + 1);
                 if (y > 0) enqueue(index - w);
                 if (y + 1 < h) enqueue(index + w);
               }
-              // A small transparent edge softening pass hides jagged pixels.
-              // Keep it local to the detected background boundary.
-              for (let index = 0; index < visited.length; index++) {
-                if (rgba[index * 4 + 3] === 0) continue;
-                const x = index % w, y = (index / w) | 0;
-                const touchesKey = (x > 0 && rgba[(index - 1) * 4 + 3] === 0) ||
-                  (x + 1 < w && rgba[(index + 1) * 4 + 3] === 0) ||
-                  (y > 0 && rgba[(index - w) * 4 + 3] === 0) ||
-                  (y + 1 < h && rgba[(index + w) * 4 + 3] === 0);
-                if (touchesKey) rgba[index * 4 + 3] = 170;
-              }
-              ctx.putImageData(pixels, 0, 0);
-              try {
-                this.compose(canvas, sample, data);
-              } catch {
+              // Only use the keyed image when it removed a meaningful amount
+              // of backdrop without wiping out nearly the whole picture.
+              const removedRatio = tail / (w * h);
+              if (removedRatio > .08 && removedRatio < .90) {
+                const mask = rgba.slice();
+                for (let index = 0; index < visited.length; index++) {
+                  if (mask[index * 4 + 3] === 0) continue;
+                  const x = index % w, y = (index / w) | 0;
+                  if ((x > 0 && mask[(index - 1) * 4 + 3] === 0) ||
+                      (x + 1 < w && mask[(index + 1) * 4 + 3] === 0) ||
+                      (y > 0 && mask[(index - w) * 4 + 3] === 0) ||
+                      (y + 1 < h && mask[(index + w) * 4 + 3] === 0)) {
+                    rgba[index * 4 + 3] = 170;
+                  }
+                }
+                ctx.putImageData(pixels, 0, 0);
+                try {
+                  this.compose(canvas, sample, data);
+                } catch {
+                  this.drawLiveCardFrame(canvas, video, data);
+                }
+              } else {
                 this.drawLiveCardFrame(canvas, video, data);
               }
             } else {
