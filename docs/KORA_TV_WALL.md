@@ -14,11 +14,14 @@ Open `/wall` on the deployed KORA PWA (for example,
   both sides of a flipping tile. Each QR opens that specific finished card.
   Click/tap a small QR to show a **larger scan-friendly QR and card**.
 - QR images are generated locally using KORA's existing QR utility, so no
-  external QR provider receives private signed download URLs.
-- Wall QR codes use short-lived signed URLs (currently 10 minutes) and are
-  refreshed in the background. Because the TV has 16 cards on screen, QR
-  readability depends on screen size and viewing distance; use the enlarge
-  view for reliable scanning from farther away.
+  external QR provider receives any private links. The TV QR contains a
+  short, random bearer-token link rather than the long private image URL.
+- The TV gallery image URLs are signed for 10 minutes and refreshed. The
+  **QR download link lasts seven days after card upload**: opening it causes
+  the server to verify the event consent and token, then redirect to a fresh
+  60-second signed PNG download. A test link appears in the enlarged QR view.
+  Because 16 cards share a TV screen, QR readability still depends on screen
+  size and distance; use the enlarged scan view when needed.
 - Has a browser fullscreen control and a **LOCK** button to clear the access code.
 - When fewer than 16 cards have arrived, unused slots show KORA branding.
 - Only shows the **finished PNG**, never any name, email, telephone, Instagram
@@ -69,6 +72,7 @@ public PWA. The existing seven-day guest QR download behavior is unchanged.
    ```powershell
    npx supabase functions deploy kora-player-save --no-verify-jwt
    npx supabase functions deploy kora-wall-feed --no-verify-jwt
+   npx supabase functions deploy kora-wall-download --no-verify-jwt
    ```
    The pre-existing `kora-card-upload` function needs no change for this
    TV feature and continues linking uploaded images to their records.
@@ -83,11 +87,14 @@ public PWA. The existing seven-day guest QR download behavior is unchanged.
 3. Open the regular `/` route on a different phone and complete a registration
    with the new combined consent; take a photo and wait for the QR.
 4. Within one refresh interval (~30 seconds), the new card should appear on TV.
-5. Create 17+ approved cards or use approved test registrations to check
+5. Click the QR next to a newly created card, then click **Test download
+   link** in the enlarged scan panel. It must open/download that exact PNG.
+   Scan the enlarged QR with a second phone and verify the same result.
+6. Create 17+ approved cards or use approved test registrations to check
    that a card flips to reveal additional photos.
-6. Check that a pre-existing registration with
+7. Check that a pre-existing registration with
    `event_screen_consent=false` is **not** shown.
-7. Check invalid access codes are rejected and the LOCK control removes the
+8. Check invalid access codes are rejected and the LOCK control removes the
    session code.
 
 Query to verify consent and card path **as an authorized operator only**:
@@ -110,3 +117,31 @@ order by created_at desc limit 30;
 - CORS is not authentication. Keep the TV access key secret; monitor
   `kora-wall-feed` invocations and protect your Supabase endpoint with
   provider-level rate limits as appropriate.
+
+## TV QR scanning fix (after the first implementation)
+
+The original TV QR encoded a **very long Supabase signed Storage URL**.
+At 4×4 tile sizes the QR modules were too dense to scan reliably, and the
+signed URL itself expired in ten minutes. The updated flow instead returns
+`qrUrl` for each approved card, pointing to:
+`https://<project>.supabase.co/functions/v1/kora-wall-download?t=<UUID>`.
+
+**Run the updated SQL migration and redeploy all three functions**:
+```powershell
+npx supabase link --project-ref lijrppvvwomrvoxtrcaj
+npx supabase functions deploy kora-player-save --no-verify-jwt
+npx supabase functions deploy kora-wall-feed --no-verify-jwt
+npx supabase functions deploy kora-wall-download --no-verify-jwt
+```
+The SQL adds private `wall_share_token` values for **new** registrations
+with event display consent. Old cards without a token are not added to the
+new QR feed; to test, create a **new consenting player after deployment**.
+Tokens remain random and unguessable, and the public download endpoint
+does not return any database personal fields. It only redirects to a short
+private PNG download after checking the token, event consent and seven-day
+time limit.
+
+Do **not** place `KORA_WALL_ACCESS_KEY` in a QR code or URL: it is needed only
+to access the TV wall feed, not for a guest scanning an individual card.
+The card QR is a bearer link: anyone possessing the link can download
+that approved card until expiry, including people who photograph the TV.
