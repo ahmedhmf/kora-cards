@@ -8,6 +8,11 @@ Open `/wall` on the deployed KORA PWA (for example,
 - Shows **12 portrait-focused card slots in a 6-column × 2-row grid** on landscape TVs.
 - Header features **Social Football League** at left, **KORA EXPERIENCE** centered,
   and the supplied **REFUEL** wordmark at right. The logos are white scalable SVGs.
+- A **static Instagram QR** for https://www.instagram.com/koraballs/ appears
+  in the lower-left footer, with a small Instagram mark over the middle and
+  the @koraballs handle beside it. It is generated locally and does not expire
+  with individual player cards. Clicking the QR opens the Instagram profile.
+  Test scanability on the actual TV before the event.
 - The **LIVE**, **FULLSCREEN**, and **LOCK** controls sit at the bottom right,
   while sync timestamp and on-screen duration labels are hidden.
 - Empty card tiles alternate between dimmed KORA and SFL logos.
