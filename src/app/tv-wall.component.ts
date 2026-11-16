@@ -26,6 +26,8 @@ export class TvWallComponent implements OnInit,OnDestroy {
   readonly cards=signal<WallCard[]>([]);
   readonly tiles=signal<WallTile[]>(Array.from({length:12},()=>({front:null,back:null,flipped:false})));
   readonly lastUpdated=signal('');
+  readonly instagramUrl='https://www.instagram.com/koraballs/';
+  readonly instagramQr=qrDataUrl(this.instagramUrl);
   readonly fullScreen=signal(false);
   readonly enlargedQr=signal<WallCard|null>(null);
   private readonly qrCache=new Map<string,string>();
