@@ -2,6 +2,7 @@ import {CommonModule} from '@angular/common';
 import {ChangeDetectionStrategy,Component,OnDestroy,OnInit,signal} from '@angular/core';
 import {FormsModule} from '@angular/forms';
 import {SUPABASE_STORAGE_CONFIG} from '../environments/supabase-storage.config';
+import {qrDataUrl} from './core/qr-code.util';
 
 interface WallCard { path:string; url:string; }
 interface WallTile { front:WallCard|null; back:WallCard|null; flipped:boolean; }
@@ -24,6 +25,8 @@ export class TvWallComponent implements OnInit,OnDestroy {
   readonly tiles=signal<WallTile[]>(Array.from({length:16},()=>({front:null,back:null,flipped:false})));
   readonly lastUpdated=signal('');
   readonly fullScreen=signal(false);
+  readonly enlargedQr=signal<WallCard|null>(null);
+  private readonly qrCache=new Map<string,string>();
   private flipTimer?:ReturnType<typeof setInterval>;
   private refreshTimer?:ReturnType<typeof setInterval>;
   private tileCursor=0;
@@ -67,6 +70,8 @@ export class TvWallComponent implements OnInit,OnDestroy {
     this.controller?.abort();
     this.connected.set(false);
     this.cards.set([]);
+    this.qrCache.clear();
+    this.enlargedQr.set(null);
     this.tiles.set(Array.from({length:16},()=>({front:null,back:null,flipped:false})));
     this.error.set('');
     this.accessCode.set('');
@@ -126,6 +131,9 @@ export class TvWallComponent implements OnInit,OnDestroy {
     const priorPaths=new Set(oldItems.map(item=>item.path));
     const hasNewCards=items.some(item=>!priorPaths.has(item.path));
     this.cards.set(items);
+    this.qrCache.clear();
+    const zoomed=this.enlargedQr();
+    if(zoomed)this.enlargedQr.set(items.find(item=>item.path===zoomed.path)??null);
     this.lastUpdated.set(new Date().toLocaleTimeString());
     const known=new Map(items.map(item=>[item.path,item]));
     if(oldItems.length<=16){
@@ -175,6 +183,17 @@ export class TvWallComponent implements OnInit,OnDestroy {
       return copy;
     });
   }
+  // QR is generated locally from the same short-lived private card URL.
+  // No external QR provider sees the signed URL.
+  qrImage(card:WallCard):string{
+    const cached=this.qrCache.get(card.url);
+    if(cached)return cached;
+    const encoded=qrDataUrl(card.url);
+    this.qrCache.set(card.url,encoded);
+    return encoded;
+  }
+  showQr(card:WallCard):void{this.enlargedQr.set(card)}
+  closeQr():void{this.enlargedQr.set(null)}
   async toggleFullscreen():Promise<void>{
     try{
       if(document.fullscreenElement)await document.exitFullscreen();
