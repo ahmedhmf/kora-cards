@@ -170,10 +170,10 @@ export class TemplateCardRendererService {
   }
 
   /**
-   * Preview a real ORMBG cutout, using lower-resolution camera snapshots to
-   * protect frame rate and memory. Unlike the removed live detection, this
-   * never gates or disables the shutter. A slow device may update only every
-   * few seconds; final capture always runs ORMBG on its full photo.
+   * Lightweight green-screen preview, with NO background-removal AI.
+   * Only key out pixels when the corners indicate a green backdrop.
+   * On ordinary backgrounds show raw camera video in the card instead.
+   * The final photograph still uses high-quality ORMBG after capture.
    */
   async startLivePreview(video: HTMLVideoElement, canvas: HTMLCanvasElement, getData: () => CardData) {
     this.stop();
@@ -182,52 +182,75 @@ export class TemplateCardRendererService {
     if (generation !== this.generation) return;
     canvas.width = this.width;
     canvas.height = this.height;
+
+    // Work with small frames; never run ORMBG/ONNX on the live camera.
+    const sample = document.createElement('canvas');
+    const sampleWidth = 256;
+    let sampleCtx: CanvasRenderingContext2D | null = null;
     let lastPaint = 0;
-    let lastAttempt = 0;
-    let processing = false;
-    let cutout: HTMLCanvasElement | undefined;
-    let cutoutFacing: CardData['facingMode'] | undefined;
+    const isGreen = (r: number, g: number, b: number) =>
+      g > 65 && g > r * 1.28 && g > b * 1.16;
+
     const tick = (time: number) => {
       if (generation !== this.generation) return;
-      if (video.readyState >= 2) {
+      if (video.readyState >= 2 && time - lastPaint >= 130) {
+        lastPaint = time;
         const data = getData();
-        // Never show an old front-camera cutout when switching cameras.
-        if (cutoutFacing !== undefined && cutoutFacing !== data.facingMode) cutout = undefined;
-        if (time - lastPaint >= 100) {
-          lastPaint = time;
-          if (cutout) {
-            try { this.compose(canvas, cutout, data); }
-            catch { cutout = undefined; this.drawLiveCardFrame(canvas, video, data); }
+        const sw = video.videoWidth, sh = video.videoHeight;
+        if (sw && sh) {
+          const w = sampleWidth, h = Math.max(1, Math.round(sh * w / sw));
+          if (sample.width !== w || sample.height !== h) {
+            sample.width = w;
+            sample.height = h;
+            sampleCtx = sample.getContext('2d', { willReadFrequently: true });
+          }
+          if (sampleCtx) {
+            const ctx = sampleCtx;
+            ctx.save();
+            if (data.facingMode === 'user') {
+              ctx.translate(w, 0);
+              ctx.scale(-1, 1);
+            }
+            ctx.drawImage(video, 0, 0, w, h);
+            ctx.restore();
+            const pixels = ctx.getImageData(0, 0, w, h);
+            const rgba = pixels.data;
+
+            // Require a genuine green screen around the player. Otherwise
+            // color keying would erase green clothing or random scenery.
+            const offsets = [
+              [0.04, 0.06], [0.96, 0.06], [0.04, 0.94], [0.96, 0.94],
+              [0.04, 0.5], [0.96, 0.5],
+            ];
+            let greenCorners = 0;
+            for (const [fx, fy] of offsets) {
+              const x = Math.min(w - 1, Math.floor(fx * w));
+              const y = Math.min(h - 1, Math.floor(fy * h));
+              const i = (y * w + x) * 4;
+              if (isGreen(rgba[i], rgba[i + 1], rgba[i + 2])) greenCorners++;
+            }
+            if (greenCorners >= 4) {
+              for (let i = 0; i < rgba.length; i += 4) {
+                const r = rgba[i], g = rgba[i + 1], b = rgba[i + 2];
+                // Softer edge around the key threshold minimizes halos.
+                const dominance = Math.min(g / Math.max(1, r), g / Math.max(1, b));
+                if (isGreen(r, g, b)) rgba[i + 3] = 0;
+                else if (g > 60 && dominance > 1.1) {
+                  rgba[i + 3] = Math.min(255, Math.round(255 * (1.28 - dominance) / 0.18));
+                }
+              }
+              ctx.putImageData(pixels, 0, 0);
+              try {
+                this.compose(canvas, sample, data);
+              } catch {
+                this.drawLiveCardFrame(canvas, video, data);
+              }
+            } else {
+              this.drawLiveCardFrame(canvas, video, data);
+            }
           } else {
-            // Fallback while the model loads, or if matting isn't possible.
             this.drawLiveCardFrame(canvas, video, data);
           }
-        }
-        if (!processing && time - lastAttempt >= 1800) {
-          processing = true;
-          lastAttempt = time;
-          const snapshotData = data;
-          // Smaller than final capture; a snapshot is immutable during inference.
-          const sw = video.videoWidth, sh = video.videoHeight;
-          const factor = Math.min(1, 320 / sw, 480 / sh);
-          const snapshot = document.createElement('canvas');
-          snapshot.width = Math.max(1, Math.round(sw * factor));
-          snapshot.height = Math.max(1, Math.round(sh * factor));
-          const ctx = snapshot.getContext('2d');
-          if (ctx) {
-            if (snapshotData.facingMode === 'user') {
-              ctx.translate(snapshot.width, 0); ctx.scale(-1, 1);
-            }
-            ctx.drawImage(video, 0, 0, snapshot.width, snapshot.height);
-            void this.quality.isolate(snapshot).then(person => {
-              if (generation !== this.generation || getData().facingMode !== snapshotData.facingMode) return;
-              cutout = person;
-              cutoutFacing = snapshotData.facingMode;
-            }).catch(error => {
-              // Failure of a preview frame must never block taking the photo.
-              if (generation === this.generation) console.warn('KORA preview cutout unavailable', error);
-            }).finally(() => { processing = false; });
-          } else processing = false;
         }
       }
       this.frameId = requestAnimationFrame(tick);
