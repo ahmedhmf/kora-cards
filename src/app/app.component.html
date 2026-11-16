@@ -112,7 +112,10 @@
       <div class="card-loader" *ngIf="store.cardLoading()"><span></span> Removing background…</div>
     </div>
 
-    <div class="card-qr-panel" *ngIf="store.cloudQrImage()" aria-label="Download your KORA card with QR code">
+    <div class="card-qr-panel" *ngIf="store.cloudQrImage() && store.qrPopupOpen()"
+      id="kora-qr-popup" role="dialog" aria-modal="false" aria-label="Download your KORA card with QR code">
+      <button type="button" class="card-qr-close" (click)="store.closeQrPopup()"
+        aria-label="Minimize QR code" title="Close QR code">×</button>
       <strong>SCAN TO GET YOUR CARD</strong>
       <img [src]="store.cloudQrImage()" alt="QR code to download the finished KORA player card">
       <span>Scan with your phone camera</span>
@@ -137,13 +140,17 @@
         </svg>
       </button>
 
-      <button class="icon-action-btn whatsapp-action" type="button" (click)="store.openWhatsApp()"
-        [disabled]="store.cardLoading()||!!store.error()||store.cardMediaType()!=='image'"
-        aria-label="Open WhatsApp chat with entered phone number" title="Open WhatsApp chat">
-        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M20.2 11.7a8.3 8.3 0 0 1-12.3 7.2L3 20l1.3-4.6A8.3 8.3 0 1 1 20.2 11.7Z"/>
-          <path d="M8.2 8.5c.5 3 3 5.4 6.2 6.8l1.8-1.9"/>
-          <path d="M8.2 8.5l1.5-1.4"/>
+      <button class="icon-action-btn qr-action" type="button" (click)="store.toggleQrPopup()"
+        [disabled]="!store.cloudQrImage() || store.cardLoading() || !!store.error()"
+        [attr.aria-label]="store.qrPopupOpen() ? 'Close QR code' : 'Open QR code'"
+        [attr.title]="store.qrPopupOpen() ? 'Close QR code' : 'Open QR code'"
+        [attr.aria-expanded]="store.qrPopupOpen()" aria-controls="kora-qr-popup"
+        [class.qr-action-active]="store.qrPopupOpen()">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">
+          <path d="M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z"/>
+          <path d="M5.5 5.5h2v2h-2z M16.5 5.5h2v2h-2z M5.5 16.5h2v2h-2z" fill="currentColor" stroke="none"/>
+          <path d="M14 14h3v3h-3z M20 14v3 M14 20h3 M20 20h1"/>
         </svg>
       </button>
 
@@ -158,10 +165,6 @@
     <div class="cloud-upload-status" *ngIf="store.cloudMessage()" role="status" aria-live="polite">
       {{store.cloudMessage()}}
     </div>
-    <div class="whatsapp-help" *ngIf="store.cardMediaType()==='image'">
-      WhatsApp opens a prefilled message to your number. Save the card first to attach the photo manually.
-    </div>
-    <div class="whatsapp-error" *ngIf="store.whatsappError()" role="alert">{{store.whatsappError()}}</div>
     <div class="error" *ngIf="store.error()">{{store.error()}}</div>
     <button *ngIf="store.error() && store.renderEngine()==='template'" type="button" class="secondary" (click)="store.retake()">RETAKE PHOTO</button>
   </section>
