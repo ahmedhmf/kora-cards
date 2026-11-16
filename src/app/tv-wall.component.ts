@@ -4,7 +4,7 @@ import {FormsModule} from '@angular/forms';
 import {SUPABASE_STORAGE_CONFIG} from '../environments/supabase-storage.config';
 import {qrDataUrl} from './core/qr-code.util';
 
-interface WallCard { path:string; url:string; qrUrl:string; }
+interface WallCard { path:string; url:string; qrUrl:string; uploadedAt:string; }
 interface WallTile { front:WallCard|null; back:WallCard|null; flipped:boolean; }
 interface WallPage { cards:WallCard[]; nextOffset:number|null; error?:string; }
 
@@ -17,18 +17,21 @@ interface WallPage { cards:WallCard[]; nextOffset:number|null; error?:string; }
   changeDetection:ChangeDetectionStrategy.OnPush,
 })
 export class TvWallComponent implements OnInit,OnDestroy {
+  private readonly slots=18;
+  private readonly displayMs=60*60*1000;
   readonly accessCode=signal('');
   readonly connected=signal(false);
   readonly loading=signal(false);
   readonly error=signal('');
   readonly cards=signal<WallCard[]>([]);
-  readonly tiles=signal<WallTile[]>(Array.from({length:16},()=>({front:null,back:null,flipped:false})));
+  readonly tiles=signal<WallTile[]>(Array.from({length:18},()=>({front:null,back:null,flipped:false})));
   readonly lastUpdated=signal('');
   readonly fullScreen=signal(false);
   readonly enlargedQr=signal<WallCard|null>(null);
   private readonly qrCache=new Map<string,string>();
   private flipTimer?:ReturnType<typeof setInterval>;
   private refreshTimer?:ReturnType<typeof setInterval>;
+  private expiryTimer?:ReturnType<typeof setInterval>;
   private tileCursor=0;
   private cardCursor=0;
   private refreshing=false;
@@ -60,6 +63,7 @@ export class TvWallComponent implements OnInit,OnDestroy {
       this.stopTimers();
       this.flipTimer=setInterval(()=>this.flipOne(),3500);
       this.refreshTimer=setInterval(()=>{void this.refresh()},30000);
+      this.expiryTimer=setInterval(()=>this.expireCards(),1000);
     }catch(err){
       this.connected.set(false);
       this.error.set(err instanceof Error?err.message:'Could not open the KORA wall.');
@@ -83,7 +87,8 @@ export class TvWallComponent implements OnInit,OnDestroy {
   private stopTimers():void{
     if(this.flipTimer)clearInterval(this.flipTimer);
     if(this.refreshTimer)clearInterval(this.refreshTimer);
-    this.flipTimer=undefined;this.refreshTimer=undefined;
+    if(this.expiryTimer)clearInterval(this.expiryTimer);
+    this.flipTimer=undefined;this.refreshTimer=undefined;this.expiryTimer=undefined;
   }
   private async fetchPage(offset:number):Promise<WallPage>{
     const config=SUPABASE_STORAGE_CONFIG;
@@ -107,7 +112,7 @@ export class TvWallComponent implements OnInit,OnDestroy {
       throw new Error(body.error||`Unable to load KORA cards (HTTP ${response.status}).`);
     }
     if(!Array.isArray(body.cards))throw new Error('Unexpected TV wall response.');
-    return {cards:body.cards.filter(c=>typeof c.path==='string'&&typeof c.url==='string'&&typeof c.qrUrl==='string'),nextOffset:typeof body.nextOffset==='number'?body.nextOffset:null};
+    return {cards:body.cards.filter(c=>typeof c.path==='string'&&typeof c.url==='string'&&typeof c.qrUrl==='string'&&typeof c.uploadedAt==='string'),nextOffset:typeof body.nextOffset==='number'?body.nextOffset:null};
   }
   private async populate(first:WallPage):Promise<void>{
     const collected=[...first.cards];
@@ -126,27 +131,49 @@ export class TvWallComponent implements OnInit,OnDestroy {
     this.lastFullLoad=Date.now();
     this.applyCards([...known.values()]);
   }
+  private isFresh(card:WallCard,now=Date.now()):boolean{
+    const uploaded=Date.parse(card.uploadedAt);
+    return Number.isFinite(uploaded)&&uploaded<=now&&now-uploaded<this.displayMs;
+  }
+  // Reconcile the live wall independently of fetch success. An expired card
+  // disappears even if the TV loses its network connection.
+  private expireCards():void{
+    const now=Date.now();
+    const current=this.cards();
+    if(current.some(card=>!this.isFresh(card,now))){
+      this.applyCards(current.filter(card=>this.isFresh(card,now)));
+    }
+    const enlarged=this.enlargedQr();
+    if(enlarged&&!this.isFresh(enlarged,now))this.closeQr();
+  }
   private applyCards(items:WallCard[]):void{
-    const oldItems=this.cards();
-    const priorPaths=new Set(oldItems.map(item=>item.path));
-    const hasNewCards=items.some(item=>!priorPaths.has(item.path));
-    this.cards.set(items);
+    const now=Date.now();
+    const eligible=items.filter(card=>this.isFresh(card,now));
+    const previous=this.cards();
+    const priorPaths=previous.map(card=>card.path);
+    const changed=priorPaths.length!==eligible.length||
+      priorPaths.some((path,i)=>path!==eligible[i].path);
+    this.cards.set(eligible);
     this.qrCache.clear();
     const zoomed=this.enlargedQr();
-    if(zoomed)this.enlargedQr.set(items.find(item=>item.path===zoomed.path)??null);
+    if(zoomed)this.enlargedQr.set(eligible.find(item=>item.path===zoomed.path)??null);
     this.lastUpdated.set(new Date().toLocaleTimeString());
-    const known=new Map(items.map(item=>[item.path,item]));
-    if(oldItems.length<=16){
-      // Fill brand-placeholder slots as soon as new cards arrive.
-      this.tiles.set(Array.from({length:16},(_,i)=>({front:items[i]??null,back:null,flipped:false})));
-      this.cardCursor=Math.min(16,items.length);
+    const known=new Map(eligible.map(item=>[item.path,item]));
+    if(changed){
+      // Refill empty/expired slots promptly; nothing older than an hour
+      // remains on either side of a flipping tile.
+      this.tiles.set(Array.from({length:this.slots},(_,i)=>({
+        front:eligible[i]??null,back:null,flipped:false,
+      })));
+      this.cardCursor=Math.min(this.slots,eligible.length);
+      this.tileCursor=0;
     }else{
+      // Refresh signed image URLs without interrupting animations.
       this.tiles.update(tiles=>tiles.map(tile=>({
         ...tile,
-        front:tile.front?known.get(tile.front.path)??tile.front:null,
-        back:tile.back?known.get(tile.back.path)??tile.back:null,
+        front:tile.front?known.get(tile.front.path)??null:null,
+        back:tile.back?known.get(tile.back.path)??null:null,
       })));
-      this.cardCursor=hasNewCards?0:this.cardCursor%Math.max(1,items.length);
     }
   }
   async refresh():Promise<void>{
@@ -170,10 +197,18 @@ export class TvWallComponent implements OnInit,OnDestroy {
     }finally{this.refreshing=false;this.controller=undefined}
   }
   flipOne():void{
+    this.expireCards();
     const pool=this.cards();
-    if(pool.length<=16)return; // No unseen cards to rotate in yet.
-    const slot=this.tileCursor++%16;
-    const card=pool[this.cardCursor++%pool.length];
+    if(pool.length<=this.slots)return; // All eligible cards already fit.
+    const slot=this.tileCursor++%this.slots;
+    // Prefer a player not already visible in the other ${this.slots} tiles.
+    const onScreen=new Set(this.tiles().map(tile=>(
+      tile.flipped?tile.back?.path:tile.front?.path
+    )).filter(Boolean));
+    let card=pool[this.cardCursor++%pool.length];
+    for(let i=0;i<pool.length&&onScreen.has(card.path);i++){
+      card=pool[this.cardCursor++%pool.length];
+    }
     this.tiles.update(tiles=>{
       const copy=[...tiles];
       const old=copy[slot];
