@@ -184,3 +184,61 @@ unchanged and must remain deployed.
 - Registration stores **one row per consented form submission**; it does not
   deduplicate people by email and does not attach the record ID to their
   exported PNG.
+
+## Linking the finished card image to the customer record
+
+A customer who checks **both** independent consents (player details and
+finished-card cloud storage) now has their card linked to their record:
+
+1. `kora-player-save` inserts the private registration and returns an
+   unguessable session-only linking token; the database stores only its
+   SHA-256 digest with a server-side salt.
+2. The final PNG goes through the existing `kora-card-upload` function,
+   with the link token in the `x-kora-registration-token` header.
+3. The Edge Function validates the token and registration's image consent,
+   uploads the PNG into the private `kora-cards` bucket, and saves
+   `card_storage_path` and `card_uploaded_at` on the matching
+   `kora_player_registrations` row.
+4. The ordinary seven-day QR signed download URL is still returned to the
+   kiosk; this expiring URL is **not** stored in the database.
+
+No linking token is sent when the customer leaves player-data consent
+unchecked. If only cloud-card consent is checked, the card continues to
+upload and show a QR, but no player registration is stored or linked.
+If only data consent is checked, the details are saved but no card image
+is uploaded.
+
+**Required upgrade steps (existing installations):**
+
+1. Re-run `supabase/kora-player-registration.sql` in SQL Editor.
+   It contains `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`, so this also
+   upgrades an already-created registrations table without deleting records.
+2. Redeploy **both** functions; older deployed versions don't support the
+   linking token:
+   ```powershell
+   npx supabase link --project-ref lijrppvvwomrvoxtrcaj
+   npx supabase functions deploy kora-player-save --no-verify-jwt
+   npx supabase functions deploy kora-card-upload --no-verify-jwt
+   ```
+3. Rebuild/refresh the KORA PWA, register a new test player with **both**
+   checkboxes checked, capture a card, and wait for the QR button to activate.
+4. Verify the linked private storage path using administrative SQL:
+   ```sql
+   select created_at, name, email, card_storage_path, card_uploaded_at
+   from public.kora_player_registrations
+   order by created_at desc limit 20;
+   ```
+   `card_storage_path` should contain an object key such as
+   `2026-11-16/<uuid>.png` in the private `kora-cards` bucket.
+   To access the image from an admin application, create a **new signed
+   download URL server-side** from this object path. Do not expose service
+   credentials or customer records to the PWA.
+
+The new linkage applies only to new registrations using the updated app
+and functions; existing unlinked cards aren't retroactively matched
+to personal details. The image token is a bearer capability, held in
+session state and not saved to localStorage. Protect photo retention and
+deletion alongside registration retention: removing a table row **does not**
+delete its Storage PNG. This implementation stores one linked card per
+registration; further cards should use a new registration or an extended
+one-to-many card table.
