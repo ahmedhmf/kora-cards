@@ -59,10 +59,10 @@
           type="number" inputmode="numeric" min="0" max="99" placeholder="10" required>
       </label>
       <label class="cloud-consent-label">
-        <span>I agree to my finished KORA card being saved in KORA's private cloud storage.</span>
         <input type="checkbox" [checked]="store.cloudConsent()"
           (change)="store.setCloudConsent($any($event.target).checked)"
           aria-label="Agree to store my finished KORA card in private cloud storage">
+        <span>I agree to my finished KORA card being saved in KORA's private cloud storage.</span>
       </label>
     </div>
     <button class="primary" (click)="store.openCamera()"><span class="camera-icon">●</span> OPEN CAMERA <b>→</b></button>
