@@ -195,3 +195,16 @@
     transform-origin:bottom center;
   }
 }
+
+/* Registration consent matches the same small left-aligned checkbox layout. */
+.intro .player-fields .data-consent-label{
+  align-items:start!important;
+  margin-top:5px;
+}
+.intro .player-fields .data-consent-label input[type="checkbox"]{
+  margin-top:2px!important;
+}
+.intro .upload-button.upload-disabled{
+  opacity:.55;
+  pointer-events:none;
+}
