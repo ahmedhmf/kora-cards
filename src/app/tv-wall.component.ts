@@ -117,19 +117,24 @@ export class TvWallComponent implements OnInit,OnDestroy {
     const known=new Map<string,WallCard>();
     for(const card of collected)known.set(card.path,card);
     const items=[...known.values()];
+    const oldItems=this.cards();
+    const priorPaths=new Set(oldItems.map(item=>item.path));
+    const hasNewCards=items.some(item=>!priorPaths.has(item.path));
     this.cards.set(items);
     this.lastUpdated.set(new Date().toLocaleTimeString());
-    if(!this.tiles().some(tile=>tile.front||tile.back)){
+    if(oldItems.length<=16){
+      // Fill brand-placeholder slots as soon as new cards arrive.
       this.tiles.set(Array.from({length:16},(_,i)=>({front:items[i]??null,back:null,flipped:false})));
       this.cardCursor=Math.min(16,items.length);
     }else{
-      // Refresh expiring signed URLs without resetting the visible 4x4 wall.
+      // Keep existing visible cards and renew their expiring signed URLs.
       this.tiles.update(tiles=>tiles.map(tile=>({
         ...tile,
         front:tile.front?known.get(tile.front.path)??tile.front:null,
         back:tile.back?known.get(tile.back.path)??tile.back:null,
       })));
-      this.cardCursor=Math.min(this.cardCursor,Math.max(0,items.length-1));
+      // Prioritize new arrivals, otherwise continue cycling through everyone.
+      this.cardCursor=hasNewCards?0:this.cardCursor%Math.max(1,items.length);
     }
   }
   async refresh():Promise<void>{
