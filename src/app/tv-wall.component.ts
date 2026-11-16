@@ -17,14 +17,14 @@ interface WallPage { cards:WallCard[]; nextOffset:number|null; error?:string; }
   changeDetection:ChangeDetectionStrategy.OnPush,
 })
 export class TvWallComponent implements OnInit,OnDestroy {
-  private readonly slots=18;
+  private readonly slots=12;
   private readonly displayMs=60*60*1000;
   readonly accessCode=signal('');
   readonly connected=signal(false);
   readonly loading=signal(false);
   readonly error=signal('');
   readonly cards=signal<WallCard[]>([]);
-  readonly tiles=signal<WallTile[]>(Array.from({length:18},()=>({front:null,back:null,flipped:false})));
+  readonly tiles=signal<WallTile[]>(Array.from({length:12},()=>({front:null,back:null,flipped:false})));
   readonly lastUpdated=signal('');
   readonly fullScreen=signal(false);
   readonly enlargedQr=signal<WallCard|null>(null);
@@ -76,7 +76,7 @@ export class TvWallComponent implements OnInit,OnDestroy {
     this.cards.set([]);
     this.qrCache.clear();
     this.enlargedQr.set(null);
-    this.tiles.set(Array.from({length:16},()=>({front:null,back:null,flipped:false})));
+    this.tiles.set(Array.from({length:this.slots},()=>({front:null,back:null,flipped:false})));
     this.error.set('');
     this.accessCode.set('');
     this.cardCursor=0;
