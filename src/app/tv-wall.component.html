@@ -68,7 +68,22 @@
       </div>
     </div>
     <div class="wall-bottom">
-      <div class="wall-footer-copy">THE NEXT STAR IS YOU <span>✦</span> KORA CARDS</div>
+      <div class="wall-instagram">
+        <a class="wall-instagram-qr" [href]="instagramUrl" target="_blank" rel="noopener noreferrer" aria-label="Scan or open KORA Instagram @koraballs">
+          <img [src]="instagramQr" alt="QR code for instagram.com/koraballs">
+          <span class="wall-instagram-center" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2.5" y="2.5" width="19" height="19" rx="5"></rect>
+              <circle cx="12" cy="12" r="4.2"></circle>
+              <circle cx="18" cy="6.5" r="1" fill="currentColor" stroke="none"></circle>
+            </svg>
+          </span>
+        </a>
+        <div class="wall-instagram-copy">
+          <strong>FOLLOW US ON INSTAGRAM</strong>
+          <span>@koraballs</span>
+        </div>
+      </div>
       <span class="wall-warning" *ngIf="error()" role="status">{{error()}}</span>
       <div class="wall-footer-controls">
         <span class="wall-live"><i></i> LIVE</span>
