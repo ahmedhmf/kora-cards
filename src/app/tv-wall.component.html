@@ -40,7 +40,7 @@
                 <img [src]="qrImage(card)" alt="QR code to download this player card">
               </button>
             </div>
-            <div class="wall-placeholder" *ngIf="!tile.front"><img [src]="i % 2 === 0 ? '/brand/kora-tv-white.svg' : '/brand/sfl-tv-white.svg'" [alt]="i % 2 === 0 ? 'KORA' : 'Social Football League'" [class.wall-placeholder-sfl]="i % 2 !== 0"></div>
+            <div class="wall-placeholder" *ngIf="!tile.front"><img [src]="i % 2 === 0 ? '/brand/kora-tv-white.svg' : '/brand/sfl-tv-white.png'" [alt]="i % 2 === 0 ? 'KORA' : 'Social Football League'" [class.wall-placeholder-sfl]="i % 2 !== 0"></div>
           </div>
           <div class="wall-face wall-back">
             <div class="wall-card-pair" *ngIf="tile.back as card">
@@ -49,7 +49,7 @@
                 <img [src]="qrImage(card)" alt="QR code to download this player card">
               </button>
             </div>
-            <div class="wall-placeholder" *ngIf="!tile.back"><img [src]="i % 2 === 0 ? '/brand/kora-tv-white.svg' : '/brand/sfl-tv-white.svg'" [alt]="i % 2 === 0 ? 'KORA' : 'Social Football League'" [class.wall-placeholder-sfl]="i % 2 !== 0"></div>
+            <div class="wall-placeholder" *ngIf="!tile.back"><img [src]="i % 2 === 0 ? '/brand/kora-tv-white.svg' : '/brand/sfl-tv-white.png'" [alt]="i % 2 === 0 ? 'KORA' : 'Social Football League'" [class.wall-placeholder-sfl]="i % 2 !== 0"></div>
           </div>
         </div>
       </div>
