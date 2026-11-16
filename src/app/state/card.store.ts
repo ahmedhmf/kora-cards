@@ -9,6 +9,7 @@ import {InactivityService} from '../core/inactivity.service';
 import {PhotoFilterService} from '../core/photo-filter.service';
 import {GoogleDriveService} from '../core/google-drive.service';
 import {SupabaseCardStorageService} from '../core/supabase-card-storage.service';
+import {SupabasePlayerRegistrationService} from '../core/supabase-player-registration.service';
 import {qrDataUrl} from '../core/qr-code.util';
 import {GOOGLE_DRIVE_CONFIG} from '../../environments/google-drive.config';
 export type CardStage='intro'|'camera'|'countdown'|'recording'|'result';
@@ -16,11 +17,11 @@ export type Experience='home'|'card'|'filter';
 export type FilterStage='source'|'camera'|'editor';
 export type CardDesign='blue-gold'|'red-black'|'white-red'|'mono-red';
 export type RenderEngine='legacy'|'template';
-interface CardState{experience:Experience;stage:CardStage;filterStage:FilterStage;facingMode:FacingMode;filterImageUrl:string;filterProcessed:boolean;cardMediaType:'image'|'video';countdown:number;error:string;isSharing:boolean;driveAvailable:boolean;driveUploading:boolean;driveMessage:string;cloudBusy:boolean;cloudMessage:string;cloudConsent:boolean;cloudQrUrl:string;cloudQrImage:string;qrPopupOpen:boolean;cardLoading:boolean;playerName:string;playerEmail:string;instagramHandle:string;phoneNumber:string;whatsappError:string;playerPosition:string;playerNumber:number;cardDesign:CardDesign;renderEngine:RenderEngine;replayUrl:string;mediaStream:MediaStream|null;matchedPlayer:RatedPlayer}
-const initialState:CardState={experience:'card',stage:'intro',filterStage:'source',facingMode:'environment',filterImageUrl:'',filterProcessed:false,cardMediaType:'video',countdown:3,error:'',isSharing:false,driveAvailable:!GOOGLE_DRIVE_CONFIG.clientId.startsWith('PASTE_'),driveUploading:false,driveMessage:'',cloudBusy:false,cloudMessage:'',cloudConsent:false,cloudQrUrl:'',cloudQrImage:'',qrPopupOpen:false,cardLoading:false,playerName:'',playerEmail:'',instagramHandle:'',phoneNumber:'',whatsappError:'',playerPosition:'ST',playerNumber:10,cardDesign:'blue-gold',renderEngine:'template',replayUrl:'',mediaStream:null,matchedPlayer:randomPlayer('ST')};
+interface CardState{experience:Experience;stage:CardStage;filterStage:FilterStage;facingMode:FacingMode;filterImageUrl:string;filterProcessed:boolean;cardMediaType:'image'|'video';countdown:number;error:string;isSharing:boolean;driveAvailable:boolean;driveUploading:boolean;driveMessage:string;cloudBusy:boolean;cloudMessage:string;cloudConsent:boolean;dataConsent:boolean;registrationBusy:boolean;registrationSaved:boolean;cloudQrUrl:string;cloudQrImage:string;qrPopupOpen:boolean;cardLoading:boolean;playerName:string;playerEmail:string;instagramHandle:string;phoneNumber:string;whatsappError:string;playerPosition:string;playerNumber:number;cardDesign:CardDesign;renderEngine:RenderEngine;replayUrl:string;mediaStream:MediaStream|null;matchedPlayer:RatedPlayer}
+const initialState:CardState={experience:'card',stage:'intro',filterStage:'source',facingMode:'environment',filterImageUrl:'',filterProcessed:false,cardMediaType:'video',countdown:3,error:'',isSharing:false,driveAvailable:!GOOGLE_DRIVE_CONFIG.clientId.startsWith('PASTE_'),driveUploading:false,driveMessage:'',cloudBusy:false,cloudMessage:'',cloudConsent:false,dataConsent:false,registrationBusy:false,registrationSaved:false,cloudQrUrl:'',cloudQrImage:'',qrPopupOpen:false,cardLoading:false,playerName:'',playerEmail:'',instagramHandle:'',phoneNumber:'',whatsappError:'',playerPosition:'ST',playerNumber:10,cardDesign:'blue-gold',renderEngine:'template',replayUrl:'',mediaStream:null,matchedPlayer:randomPlayer('ST')};
 export const CardStore=signalStore(
  {providedIn:'root'},withState(initialState),
- withMethods((store,camera=inject(CameraService),renderer=inject(CardRendererService),templateRenderer=inject(TemplateCardRendererService),exporter=inject(CardExportService),filter=inject(PhotoFilterService),drive=inject(GoogleDriveService),cloud=inject(SupabaseCardStorageService))=>{
+ withMethods((store,camera=inject(CameraService),renderer=inject(CardRendererService),templateRenderer=inject(TemplateCardRendererService),exporter=inject(CardExportService),filter=inject(PhotoFilterService),drive=inject(GoogleDriveService),cloud=inject(SupabaseCardStorageService),registration=inject(SupabasePlayerRegistrationService))=>{
   let clipUrl='',filterUrl='',flowVersion=0;
   const delay=(ms:number)=>new Promise<void>(resolve=>setTimeout(resolve,ms));
   const validatePlayerDetails=():string=>{
@@ -38,6 +39,29 @@ export const CardStore=signalStore(
    return '';
   };
 
+  const saveRegistration=async():Promise<boolean>=>{
+    if(!store.dataConsent()||store.registrationSaved())return true;
+    patchState(store,{registrationBusy:true,error:''});
+    try{
+      await registration.save({
+        name:store.playerName().trim(),
+        email:store.playerEmail().trim(),
+        instagram:store.instagramHandle().trim(),
+        telephone:store.phoneNumber().trim(),
+        position:store.playerPosition(),
+        shirtNumber:store.playerNumber(),
+        cardCloudConsent:store.cloudConsent(),
+      });
+      patchState(store,{registrationSaved:true});
+      return true;
+    }catch(error){
+      console.error('KORA registration failed',error);
+      patchState(store,{error:error instanceof Error?error.message:'Could not save player details. Try again.'});
+      return false;
+    }finally{
+      patchState(store,{registrationBusy:false});
+    }
+  };
   const openCurrentCamera=async()=>{
    try{
     const mediaStream=await camera.open(store.facingMode());
@@ -49,11 +73,12 @@ export const CardStore=signalStore(
   return{
    chooseCard(){patchState(store,{experience:'card',stage:'intro',error:''})},
    chooseFilter(){patchState(store,{experience:'filter',filterStage:'source',error:''})},
-   setName(playerName:string){patchState(store,{playerName})},
-   setEmail(playerEmail:string){patchState(store,{playerEmail})},
-   setInstagramHandle(instagramHandle:string){patchState(store,{instagramHandle})},
-   setPhoneNumber(phoneNumber:string){patchState(store,{phoneNumber,whatsappError:''})},
+   setName(playerName:string){patchState(store,{playerName,registrationSaved:false})},
+   setEmail(playerEmail:string){patchState(store,{playerEmail,registrationSaved:false})},
+   setInstagramHandle(instagramHandle:string){patchState(store,{instagramHandle,registrationSaved:false})},
+   setPhoneNumber(phoneNumber:string){patchState(store,{phoneNumber,whatsappError:'',registrationSaved:false})},
    setCloudConsent(cloudConsent:boolean){patchState(store,{cloudConsent})},
+   setDataConsent(dataConsent:boolean){patchState(store,{dataConsent})},
    toggleQrPopup(){if(store.cloudQrImage())patchState(store,{qrPopupOpen:!store.qrPopupOpen()})},
    closeQrPopup(){patchState(store,{qrPopupOpen:false})},
    openWhatsApp(){
@@ -72,8 +97,8 @@ export const CardStore=signalStore(
     // This opens a prefilled text conversation; wa.me cannot attach a canvas.
     window.location.assign(`https://wa.me/${digits}?text=${encodeURIComponent(message)}`);
    },
-   setPosition(playerPosition:string){patchState(store,{playerPosition,matchedPlayer:randomPlayer(playerPosition,store.matchedPlayer().name)})},
-   setNumber(value:number|string){const number=Math.max(0,Math.min(99,Number(value)||0));patchState(store,{playerNumber:number})},
+   setPosition(playerPosition:string){patchState(store,{playerPosition,registrationSaved:false,matchedPlayer:randomPlayer(playerPosition,store.matchedPlayer().name)})},
+   setNumber(value:number|string){const number=Math.max(0,Math.min(99,Number(value)||0));patchState(store,{playerNumber:number,registrationSaved:false})},
    setCardDesign(cardDesign:CardDesign){patchState(store,{cardDesign})},
    setRenderEngine(renderEngine:RenderEngine){renderer.stop();templateRenderer.stop();patchState(store,{renderEngine})},
    setFacingMode(facingMode:FacingMode){
@@ -90,11 +115,11 @@ export const CardStore=signalStore(
      void openCurrentCamera();
     }
    },
-   async openCamera(){const validationError=validatePlayerDetails();if(validationError){patchState(store,{error:validationError});return;}patchState(store,{error:''});try{const mediaStream=await camera.open(store.facingMode());patchState(store,{stage:'camera',mediaStream});window.scrollTo(0,0);}catch{patchState(store,{error:'Camera access is needed. Allow it in your browser settings.'})}},
+   async openCamera(){if(store.registrationBusy())return;const validationError=validatePlayerDetails();if(validationError){patchState(store,{error:validationError});return;}if(!await saveRegistration())return;patchState(store,{error:''});try{const mediaStream=await camera.open(store.facingMode());patchState(store,{stage:'camera',mediaStream});window.scrollTo(0,0);}catch{patchState(store,{error:'Camera access is needed. Allow it in your browser settings.'})}},
    attachCamera(video:HTMLVideoElement){camera.attach(video)},
    async captureCardPhoto(video:HTMLVideoElement){
     const current=++flowVersion;patchState(store,{error:'',cardLoading:true});try{const blob=await camera.capture(video,store.facingMode());if(current!==flowVersion)return;camera.stop();if(clipUrl)URL.revokeObjectURL(clipUrl);clipUrl=URL.createObjectURL(blob);patchState(store,{replayUrl:clipUrl,cardMediaType:'image',stage:'result',mediaStream:null})}catch{if(current===flowVersion)patchState(store,{error:'Photo capture failed. Please try again.',stage:'camera'})}finally{if(current===flowVersion)patchState(store,{cardLoading:false})}},
-   selectCardPhoto(event:Event){const input=event.target as HTMLInputElement;const file=input.files?.[0];if(!file)return;input.value='';const validationError=validatePlayerDetails();if(validationError){patchState(store,{error:validationError});return;}if(!file.type.startsWith('image/')){patchState(store,{error:'Please select a photo.'});return;}flowVersion++;renderer.stop();templateRenderer.stop();camera.stop();if(clipUrl)URL.revokeObjectURL(clipUrl);clipUrl=URL.createObjectURL(file);patchState(store,{cardMediaType:'image',replayUrl:clipUrl,stage:'result',mediaStream:null,error:''});},
+   async selectCardPhoto(event:Event){const input=event.target as HTMLInputElement;const file=input.files?.[0];if(!file)return;input.value='';if(store.registrationBusy())return;const validationError=validatePlayerDetails();if(validationError){patchState(store,{error:validationError});return;}if(!file.type.startsWith('image/')){patchState(store,{error:'Please select a photo.'});return;}if(!await saveRegistration())return;flowVersion++;renderer.stop();templateRenderer.stop();camera.stop();if(clipUrl)URL.revokeObjectURL(clipUrl);clipUrl=URL.createObjectURL(file);patchState(store,{cardMediaType:'image',replayUrl:clipUrl,stage:'result',mediaStream:null,error:''});},
    async startSequence(){if(store.renderEngine()==='template'){patchState(store,{error:'New KORA template supports photos only. Use the photo shutter.'});return;}const current=++flowVersion;patchState(store,{stage:'countdown'});for(let n=3;n>0;n--){if(current!==flowVersion)return;patchState(store,{countdown:n});await delay(1000)}if(current!==flowVersion)return;patchState(store,{stage:'recording'});try{const blob=await camera.record(2000);if(current!==flowVersion)return;camera.stop();if(clipUrl)URL.revokeObjectURL(clipUrl);clipUrl=URL.createObjectURL(blob);patchState(store,{replayUrl:clipUrl,cardMediaType:'video',stage:'result',mediaStream:null})}catch{if(current===flowVersion)patchState(store,{error:'Recording failed. Please try again.',stage:'camera'})}},
    async renderCard(video:HTMLVideoElement,canvas:HTMLCanvasElement){if(store.renderEngine()==='template'){patchState(store,{error:'Video is only available in Classic Cards.'});return;}patchState(store,{cardLoading:true,error:''});try{await (store.renderEngine()==='template'?templateRenderer:renderer).start(video,canvas,()=>({name:store.playerName(),instagramHandle:store.instagramHandle(),position:store.playerPosition(),number:store.playerNumber(),design:store.cardDesign(),match:store.matchedPlayer(),facingMode:store.facingMode()}))}catch(error){console.error(error);patchState(store,{error:'Card renderer could not start. Please reload.'})}finally{patchState(store,{cardLoading:false})}},
    async renderCardPhoto(image:HTMLImageElement,canvas:HTMLCanvasElement){
