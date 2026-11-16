@@ -12,6 +12,7 @@ create table if not exists public.kora_player_registrations (
     ('GK','RB','RWB','CB','LB','LWB','CDM','CM','CAM','RM','RW','LM','LW','CF','ST')),
   shirt_number integer not null check (shirt_number between 0 and 99),
   card_cloud_consent boolean not null default false,
+  event_screen_consent boolean not null default false,
   card_link_token_hash text unique,
   card_storage_path text,
   card_uploaded_at timestamptz,
@@ -21,6 +22,7 @@ create table if not exists public.kora_player_registrations (
 
 -- Migration for installations where this table was already created.
 alter table public.kora_player_registrations
+  add column if not exists event_screen_consent boolean not null default false,
   add column if not exists card_link_token_hash text,
   add column if not exists card_storage_path text,
   add column if not exists card_uploaded_at timestamptz;
@@ -48,3 +50,7 @@ grant select, insert, update, delete on public.kora_player_registrations to serv
 -- and the Storage object are explicitly deleted under your retention policy.
 -- The short-lived random linking token is returned only to the kiosk session,
 -- with only its SHA-256 digest stored in the database.
+
+-- Event screen visibility is strictly opt-in for new registrations only.
+-- Existing card records remain event_screen_consent=false and are NOT shown.
+-- Never turn this flag on in bulk without verified participant permission.
