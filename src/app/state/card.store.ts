@@ -26,11 +26,11 @@ export const CardStore=signalStore(
   const validatePlayerDetails=():string=>{
    if(!store.playerName().trim())return 'Please enter your name.';
    const email=store.playerEmail().trim();
-   if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email))return 'Please enter a valid email address.';
+   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return 'Please enter a valid email address.';
    if(!/^@?[A-Za-z0-9._]{1,30}$/.test(store.instagramHandle().trim()))return 'Please enter your Instagram username.';
    const raw=store.phoneNumber().trim();
-   const digits=raw.replace(/[\\s().-]/g,'').replace(/^\\+/,'');
-   if(!/^\\+?[0-9\\s().-]+$/.test(raw)||!/^\\d{8,15}$/.test(digits)||digits.startsWith('0'))
+   const digits=raw.replace(/[\s().-]/g,'').replace(/^\+/,'');
+   if(!/^\+?[0-9\s().-]+$/.test(raw)||!/^\d{8,15}$/.test(digits)||digits.startsWith('0'))
     return 'Please enter your telephone number with country code (e.g. +49 151 12345678).';
    if(!store.playerPosition())return 'Please select your position.';
    if(!Number.isInteger(store.playerNumber())||store.playerNumber()<0||store.playerNumber()>99)
