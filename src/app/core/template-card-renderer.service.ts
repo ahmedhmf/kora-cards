@@ -105,8 +105,8 @@ export class TemplateCardRendererService {
   }
 
   private drawCardInformation(ctx: CanvasRenderingContext2D, data: CardData) {
-    ctx.fillStyle = '#eeedf1';
-    ctx.fillRect(193, 474, 155, 174);
+    // Keep the player score and position, but do not paint a gray box
+    // over the KORA template behind them.
     ctx.fillStyle = '#000';
     ctx.textAlign = 'left';
     ctx.font = '900 88px "Chakra Petch", sans-serif';
