@@ -6,7 +6,7 @@
     </div>
     <div class="wall-head-right" *ngIf="connected()">
       <div class="wall-live"><i></i> LIVE</div>
-      <span class="wall-count">{{cards().length}} CARDS</span>
+      <span class="wall-count">{{cards().length}} LIVE CARDS</span>
       <button class="wall-header-btn" type="button" (click)="toggleFullscreen()" title="Toggle fullscreen">⛶ FULLSCREEN</button>
       <button class="wall-header-btn wall-exit" type="button" (click)="disconnect()" title="Lock the wall">LOCK</button>
     </div>
@@ -15,7 +15,7 @@
   <section class="wall-lock" *ngIf="!connected()">
     <div class="lock-eyebrow">KORA / EVENT DISPLAY</div>
     <h1>THE PLAYER<br><em>WALL</em></h1>
-    <p>Show every event-approved KORA player card on your TV, with automatic card flips as new cards arrive.</p>
+    <p>Show event-approved KORA player cards on your TV for one hour after upload, with automatic card flips as new cards arrive.</p>
     <form (submit)="$event.preventDefault();connect()" class="wall-login">
       <label for="wall-code">EVENT DISPLAY ACCESS CODE</label>
       <input id="wall-code" type="password" [ngModel]="accessCode()" (ngModelChange)="accessCode.set($event)"
@@ -30,7 +30,7 @@
   </section>
 
   <section class="wall-stage" *ngIf="connected()">
-    <div class="wall-grid" aria-label="Live 4 by 4 grid of KORA player cards">
+    <div class="wall-grid" aria-label="Live 6 column by 3 row grid of KORA player cards">
       <div *ngFor="let tile of tiles();index as i;trackBy:trackTile" class="wall-tile">
         <div class="wall-flipper" [class.is-flipped]="tile.flipped">
           <div class="wall-face wall-front">
@@ -71,6 +71,7 @@
     </div>
     <div class="wall-bottom">
       <div>THE NEXT STAR IS YOU <span>✦</span> KORA CARDS</div>
+      <span class="wall-display-time"><span aria-hidden="true">◷</span> ON SCREEN FOR 60 MIN</span>
       <span class="wall-updated">SYNCED {{lastUpdated()}}</span>
       <span class="wall-warning" *ngIf="error()" role="status">{{error()}}</span>
     </div>
