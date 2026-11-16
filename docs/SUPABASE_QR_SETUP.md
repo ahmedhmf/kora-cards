@@ -1,9 +1,12 @@
 # KORA PWA — Supabase QR card downloads (no staff or customer login)
 
-KORA uploads **only the fully rendered 877×1558 KORA player card PNG** to
-a private Supabase Storage bucket. It does not upload the original camera
-photo, the WhatsApp phone number, or separate player-details records.
-The player name and stats are **visible within the finished PNG**.
+KORA uploads the fully rendered 877×1558 KORA player card PNG to a private
+Supabase Storage bucket **only when the cloud-card checkbox is checked**.
+Separately, when the guest checks the **player-details consent checkbox**,
+KORA stores their name, email, Instagram, telephone, position and shirt number
+in the private `public.kora_player_registrations` database table. These are
+independent choices. The raw camera photo is not uploaded. The player's name
+and stats are visible within the finished PNG.
 
 ## Customer flow
 
@@ -98,9 +101,11 @@ Do not set `Access-Control-Allow-Origin: *` as a shortcut.
   are not proof of a trusted or human caller.** Public endpoints can still
   be abused. For a large public deployment, add gateway throttling, a bot
   challenge or a device-specific authentication scheme and usage monitoring.
-- No customer logins, no staff logins and no database row containing user
-  details are required. The quota table stores salted hashes, not raw IPs,
-  but you still need an appropriate data-retention policy.
+- No customer or staff login is required to register or upload a card.
+  Customer records are only written through the server function when the
+  separate player-data consent is checked. The table has RLS enabled and no
+  public select/insert/update/delete policies. The quota table stores salted
+  hashes, not raw IPs. Configure an appropriate retention and deletion policy.
 - Signed-link expiration **does not delete an image from Supabase**.
   Establish a photo retention/deletion policy (and quota-log cleanup) before
   live events. Delete photos according to the customer's consent terms.
@@ -108,7 +113,8 @@ Do not set `Access-Control-Allow-Origin: *` as a shortcut.
   and download. Failed uploads are not queued for automatic retry.
 - QR codes are generated locally; no third-party QR service sees signed URLs.
 - The card is sent as a raw PNG request body. No phone number or original
-  image is included in the request.
+  image is included in that request. Consented player details use a **separate
+  JSON registration request**, never the raw PNG upload.
 
 ## Validate before merging
 
@@ -121,3 +127,60 @@ Do not set `Access-Control-Allow-Origin: *` as a shortcut.
 - QR should not appear unless the upload and signed URL succeeded
 - Check the Supabase Storage objects and confirm only rendered PNGs are stored
 - Test installed PWA and normal mobile browser
+
+## New: saving player details in a private Supabase database
+
+**This feature is not active in the live Supabase project until the database
+SQL and Edge Function are deployed.** The existing card upload function is
+unchanged and must remain deployed.
+
+1. Run `supabase/kora-player-registration.sql` in the same project's
+   **Supabase SQL Editor**. This creates `public.kora_player_registrations`,
+   enables RLS and revokes browser-role access to the table. Also make sure
+   `supabase/kora-cards-storage.sql` has previously been run so the
+   server-side `kora_claim_upload_slot` RPC exists.
+2. Deploy the additional Edge Function from the repository root:
+   ```powershell
+   npx supabase login
+   npx supabase link --project-ref lijrppvvwomrvoxtrcaj
+   npx supabase functions deploy kora-player-save --no-verify-jwt
+   ```
+   The function reads the same `KORA_ALLOWED_ORIGINS` and
+   `KORA_RATE_LIMIT_SALT` server secrets as `kora-card-upload`. Reuse the
+   existing **server-only** Supabase project credentials. Never put service
+   secrets in `src/environments/`.
+3. In the KORA intro form, enter all six fields and check **I agree to KORA
+   saving my details**. Select **Open Camera** or **Upload Photo**. Registration
+   is saved before entering the next screen. If it fails, the form displays an
+   error so the guest knows their information was not recorded. If the
+   **player-details consent remains unchecked**, no details are sent.
+   The independent **cloud-card consent** still controls the finished PNG
+   and QR code.
+4. Verify the record in Supabase **Table Editor → kora_player_registrations**,
+   or run this administrative SQL query (not from the PWA):
+   ```sql
+   select created_at, name, email, instagram, telephone,
+          position, shirt_number, card_cloud_consent
+   from public.kora_player_registrations
+   order by created_at desc limit 20;
+   ```
+   **Treat these records as personal data**, not public kiosk information.
+   Restrict Supabase dashboard access to authorized people.
+
+### Privacy and production hardening
+
+- The form's data-consent checkbox is **separate** from the image-storage
+  checkbox and is **not consent for marketing messages**. Provide a clear
+  privacy notice identifying KORA as controller, purpose, lawful basis,
+  retention period, contact and deletion rights before a live event.
+- Decide and implement a deletion schedule. The SQL file includes an example
+  90-day retention query, but nothing is deleted automatically until the
+  operator configures a job. Card signed URL expiry does not delete card PNGs.
+- The public, no-login endpoint uses server-side validation, browser origin
+  checks and the existing shared upload quota, but **CORS is not authentication**.
+  Add gateway-level bot protection and monitor usage before public deployment.
+  Successful registration consumes one quota slot, so events sharing a single
+  Wi-Fi/public IP may require quota adjustment.
+- Registration stores **one row per consented form submission**; it does not
+  deduplicate people by email and does not attach the record ID to their
+  exported PNG.
