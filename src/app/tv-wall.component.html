@@ -1,15 +1,14 @@
 <main class="wall-shell">
-  <header class="wall-header">
-    <div class="wall-brand" aria-label="KORA and Social Football League">
-      <img src="/brand/kora-tv-white.svg" alt="KORA" class="wall-logo wall-kora-logo">
-      <span class="wall-brand-divider" aria-hidden="true"></span>
-      <img src="/brand/sfl-tv-white.svg" alt="SFL — Social Football League" class="wall-logo wall-sfl-logo">
+  <header class="wall-header" aria-label="Event partners">
+    <div class="wall-header-partner wall-header-left">
+      <img src="/brand/sfl-tv-white.svg" alt="SFL — Social Football League" class="wall-header-logo wall-sfl-mark">
     </div>
-    <div class="wall-head-right" *ngIf="connected()">
-      <div class="wall-live"><i></i> LIVE</div>
-      <span class="wall-count">{{cards().length}} LIVE CARDS</span>
-      <button class="wall-header-btn" type="button" (click)="toggleFullscreen()" title="Toggle fullscreen">⛶ FULLSCREEN</button>
-      <button class="wall-header-btn wall-exit" type="button" (click)="disconnect()" title="Lock the wall">LOCK</button>
+    <div class="wall-header-center" aria-label="KORA Experience">
+      <img src="/brand/kora-tv-white.svg" alt="KORA" class="wall-header-logo wall-kora-mark">
+      <span class="wall-experience">EXPERIENCE</span>
+    </div>
+    <div class="wall-header-partner wall-header-right">
+      <img src="/brand/refuel-tv-white.svg" alt="REFUEL" class="wall-header-logo wall-refuel-mark">
     </div>
   </header>
 
@@ -69,10 +68,13 @@
       </div>
     </div>
     <div class="wall-bottom">
-      <div>THE NEXT STAR IS YOU <span>✦</span> KORA CARDS</div>
-      <span class="wall-display-time"><span aria-hidden="true">◷</span> ON SCREEN FOR 60 MIN</span>
-      <span class="wall-updated">SYNCED {{lastUpdated()}}</span>
+      <div class="wall-footer-copy">THE NEXT STAR IS YOU <span>✦</span> KORA CARDS</div>
       <span class="wall-warning" *ngIf="error()" role="status">{{error()}}</span>
+      <div class="wall-footer-controls">
+        <span class="wall-live"><i></i> LIVE</span>
+        <button class="wall-header-btn" type="button" (click)="toggleFullscreen()" title="Toggle fullscreen">⛶ FULLSCREEN</button>
+        <button class="wall-header-btn wall-exit" type="button" (click)="disconnect()" title="Lock the wall">LOCK</button>
+      </div>
     </div>
   </section>
 </main>
