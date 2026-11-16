@@ -1,0 +1,45 @@
+:host{display:block;width:100vw;height:100vh;overflow:hidden;color:#fff;font-family:"Chakra Petch",Arial,sans-serif;background:radial-gradient(ellipse at 55% 15%,#242b2a 0%,#0b1010 45%,#050707 100%)}
+*{box-sizing:border-box}
+.wall-shell{width:100%;height:100%;padding:clamp(12px,1.3vw,26px) clamp(16px,2.3vw,48px) clamp(8px,.8vw,18px);display:flex;flex-direction:column;gap:clamp(10px,1vh,20px);overflow:hidden}
+.wall-header{height:clamp(55px,7.5vh,96px);flex-shrink:0;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.14);padding-bottom:8px}
+.wall-brand{display:flex;align-items:center;gap:clamp(12px,1.2vw,24px)}
+.wall-logo{height:clamp(38px,6vh,78px);max-width:180px;object-fit:contain}
+.wall-brand-copy{display:flex;flex-direction:column;gap:5px}
+.wall-brand-copy strong{font-weight:900;font-size:clamp(21px,2vw,43px);line-height:1;letter-spacing:.1em}
+.wall-brand-copy span{color:#e0282a;font-size:clamp(8px,.7vw,14px);font-weight:800;letter-spacing:.25em}
+.wall-head-right{display:flex;align-items:center;gap:clamp(10px,1.4vw,25px);font-weight:800;letter-spacing:.11em;font-size:clamp(11px,.9vw,19px)}
+.wall-live{display:flex;gap:9px;align-items:center;color:#f6f6f6}
+.wall-live i{width:10px;height:10px;border-radius:50%;background:#e32228;box-shadow:0 0 12px #e32228;animation:wall-pulse 2.5s infinite}
+@keyframes wall-pulse{50%{opacity:.4}}
+.wall-count{color:#c1c7c8;font-size:clamp(9px,.75vw,14px)}
+.wall-header-btn{font:800 clamp(10px,.65vw,14px) "Chakra Petch",Arial,sans-serif;letter-spacing:.08em;color:#fff;background:#191c1e;border:1px solid #555;padding:9px 13px;border-radius:5px;cursor:pointer}
+.wall-header-btn:hover,.wall-header-btn:focus-visible{border-color:#e32228;background:#332026}
+.wall-exit{color:#aaa}
+.wall-stage{flex:1;min-height:0;display:flex;flex-direction:column;gap:8px}
+.wall-grid{flex:1;min-height:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:repeat(4,minmax(0,1fr));gap:clamp(6px,.85vh,15px);padding:clamp(3px,.6vh,9px) 0}
+.wall-tile{min-width:0;min-height:0;background:linear-gradient(135deg,#161a1c,#0c0f10);border:1px solid rgba(255,255,255,.12);border-radius:clamp(5px,.5vw,12px);padding:clamp(3px,.3vw,8px);perspective:1100px;box-shadow:0 5px 25px rgba(0,0,0,.3);overflow:hidden}
+.wall-flipper{height:100%;width:100%;position:relative;transform-style:preserve-3d;transition:transform 1.1s cubic-bezier(.2,.75,.25,1)}
+.wall-flipper.is-flipped{transform:rotateY(180deg)}
+.wall-face{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:3px;overflow:hidden;background:radial-gradient(ellipse,#25302b 0%,#111514 80%)}
+.wall-face.wall-back{transform:rotateY(180deg)}
+.wall-face>img{display:block;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 3px 7px rgba(0,0,0,.38))}
+.wall-placeholder{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#737b7a;text-align:center;font-size:clamp(8px,.8vw,15px);letter-spacing:.17em;font-weight:800}
+.wall-placeholder img{width:35%;max-height:45%;object-fit:contain;opacity:.24;filter:grayscale(1)}
+.wall-bottom{flex-shrink:0;min-height:clamp(18px,3vh,40px);display:flex;align-items:center;justify-content:space-between;gap:14px;color:#a6aba9;font-size:clamp(9px,.85vw,18px);font-weight:800;letter-spacing:.18em}
+.wall-bottom>div{color:#f7f7f7}.wall-bottom>div span{color:#ed1c24;margin:0 9px}
+.wall-updated{margin-left:auto;color:#66716b}
+.wall-warning{color:#ff9e9e;max-width:40vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wall-lock{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(14px,2vh,27px);text-align:center}
+.lock-eyebrow{font-size:clamp(12px,1vw,18px);font-weight:800;letter-spacing:.3em;color:#ec282d}
+.wall-lock h1{font-size:clamp(56px,7.5vw,140px);font-weight:950;letter-spacing:-.045em;line-height:.86;margin:0}
+.wall-lock h1 em{color:#ec282d;font-style:normal}
+.wall-lock p{font-size:clamp(13px,1.1vw,20px);max-width:640px;color:#aeb9b3;margin:0;line-height:1.5}
+.wall-login{display:flex;flex-direction:column;gap:12px;width:min(430px,90vw);text-align:left}
+.wall-login label{font-weight:800;letter-spacing:.1em;font-size:12px;color:#babdbd}
+.wall-login input{width:100%;padding:14px;background:#1d2120;border:1px solid #57645c;color:#fff;border-radius:6px;font:600 17px "Chakra Petch",Arial,sans-serif}
+.wall-login button{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border:0;border-radius:6px;background:#ed1c24;color:#fff;font:900 16px "Chakra Petch",Arial,sans-serif;cursor:pointer}
+.wall-login button:disabled{opacity:.5}
+.wall-lock .wall-error{color:#ff9999}
+.wall-lock small{font-size:11px;color:#838c88}
+@media(prefers-reduced-motion:reduce){.wall-flipper,.wall-live i{animation:none;transition:none}}
+@media(max-width:800px){.wall-header-btn{padding:5px 7px}.wall-brand-copy span{display:none}.wall-head-right{gap:6px}.wall-shell{padding:9px}.wall-grid{gap:4px}.wall-tile{padding:2px}.wall-bottom{letter-spacing:.02em}}
