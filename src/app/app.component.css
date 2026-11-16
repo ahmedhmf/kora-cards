@@ -91,3 +91,48 @@
   height:100%;
   object-fit:contain;
 }
+
+/* Player intake: six fields in a compact mobile-friendly layout. */
+.intro .player-fields{
+  grid-template-columns:minmax(0,1fr) 108px;
+  gap:9px 10px;
+  margin:12px 0;
+}
+.intro .player-fields label{min-width:0}
+.intro .player-fields .player-field-full{grid-column:1/-1}
+.intro .player-fields input:not([type=checkbox]),
+.intro .player-fields select{
+  box-sizing:border-box;
+  width:100%;
+  min-width:0;
+  min-height:40px;
+  margin-top:5px;
+  padding:9px 11px;
+  font:700 14px "Chakra Petch",sans-serif;
+}
+.intro .player-fields .cloud-consent-label{
+  grid-column:1/-1;
+  display:flex!important;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin:3px 0 0;
+  font-size:11px;
+  line-height:1.35;
+  letter-spacing:normal;
+  cursor:pointer;
+}
+.intro .cloud-consent-label span{flex:1;min-width:0}
+.intro .cloud-consent-label input[type=checkbox]{
+  display:block;
+  box-sizing:border-box;
+  flex:0 0 15px;
+  width:15px!important;
+  min-width:15px!important;
+  height:15px!important;
+  min-height:15px!important;
+  margin:0!important;
+  padding:0!important;
+  accent-color:#ed1c24;
+  cursor:pointer;
+}
