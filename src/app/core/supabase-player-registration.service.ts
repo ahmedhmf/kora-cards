@@ -14,7 +14,7 @@ export interface KoraPlayerRegistration {
 /** Sends consented player details to a private, server-managed Supabase table. */
 @Injectable({providedIn:'root'})
 export class SupabasePlayerRegistrationService {
-  async save(player:KoraPlayerRegistration):Promise<void>{
+  async save(player:KoraPlayerRegistration):Promise<string>{
     if(!config.url.startsWith('https://')||config.url.includes('YOUR_PROJECT_REF')||
        !config.publishableKey||config.publishableKey.startsWith('PASTE_')){
       throw new Error('KORA database is not configured yet.');
@@ -34,7 +34,11 @@ export class SupabasePlayerRegistrationService {
     }catch{
       throw new Error('Unable to reach the KORA registration service. Check your connection.');
     }
-    const result=await response.json().catch(()=>({})) as {saved?:boolean;error?:string};
+    const result=await response.json().catch(()=>({})) as {saved?:boolean;linkToken?:string|null;error?:string};
     if(!response.ok||!result.saved)throw new Error(result.error||`Player registration failed (${response.status}).`);
+    if(player.cardCloudConsent && !/^[0-9a-f-]{36}$/i.test(result.linkToken||'')){
+      throw new Error('Registration saved, but no card linking token was returned.');
+    }
+    return result.linkToken||'';
   }
 }
