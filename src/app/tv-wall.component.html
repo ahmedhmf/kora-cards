@@ -34,13 +34,37 @@
       <div *ngFor="let tile of tiles();index as i;trackBy:trackTile" class="wall-tile">
         <div class="wall-flipper" [class.is-flipped]="tile.flipped">
           <div class="wall-face wall-front">
-            <img *ngIf="tile.front" [src]="tile.front.url" alt="KORA event player card" loading="eager">
+            <div class="wall-card-pair" *ngIf="tile.front">
+              <img class="wall-player-img" [src]="tile.front.url" alt="KORA event player card" loading="eager">
+              <button class="wall-qr-side" type="button" (click)="showQr(tile.front)" title="Enlarge this card's download QR code" aria-label="Enlarge card download QR code">
+                <img [src]="qrImage(tile.front)" alt="QR code to download this player card">
+                <span>SCAN</span>
+              </button>
+            </div>
             <div class="wall-placeholder" *ngIf="!tile.front"><img src="/brand/kora-logo.png" alt=""><span>YOUR CARD<br>COULD BE NEXT</span></div>
           </div>
           <div class="wall-face wall-back">
-            <img *ngIf="tile.back" [src]="tile.back.url" alt="KORA event player card" loading="eager">
+            <div class="wall-card-pair" *ngIf="tile.back">
+              <img class="wall-player-img" [src]="tile.back.url" alt="KORA event player card" loading="eager">
+              <button class="wall-qr-side" type="button" (click)="showQr(tile.back)" title="Enlarge this card's download QR code" aria-label="Enlarge card download QR code">
+                <img [src]="qrImage(tile.back)" alt="QR code to download this player card">
+                <span>SCAN</span>
+              </button>
+            </div>
             <div class="wall-placeholder" *ngIf="!tile.back"><img src="/brand/kora-logo.png" alt=""><span>KORA<br>PLAYER WALL</span></div>
           </div>
+        </div>
+      </div>
+    </div>
+    <div class="wall-qr-modal" *ngIf="enlargedQr() as card" role="dialog" aria-modal="true" aria-label="Scan QR code to download player card">
+      <div class="wall-qr-modal-inner">
+        <button class="wall-qr-dismiss" type="button" (click)="closeQr()" aria-label="Close enlarged QR code">×</button>
+        <img class="wall-qr-modal-card" [src]="card.url" alt="Selected KORA player card">
+        <div class="wall-qr-modal-scan">
+          <strong>SCAN TO GET YOUR CARD</strong>
+          <img [src]="qrImage(card)" alt="Scannable QR code to download the selected player card">
+          <p>Point your phone camera here to download this player card.</p>
+          <small>This TV download link is refreshed automatically.</small>
         </div>
       </div>
     </div>
