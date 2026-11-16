@@ -8,7 +8,7 @@ Open `/wall` on the deployed KORA PWA (for example,
 - Shows **16 card slots in a 4×4 grid** suitable for landscape TV displays.
 - Automatically flips one tile to a different card every 3.5 seconds,
   continually cycling through the available event-approved cards.
-- Refreshes the list every 60 seconds, including newly created cards.
+- Checks for new cards every 30 seconds and refreshes the full collection and\n  signed download URLs approximately every 4 minutes.
 - Pages through the server's data in groups of 80, supporting large events.
 - Has a browser fullscreen control and a **LOCK** button to clear the access code.
 - When fewer than 16 cards have arrived, unused slots show KORA branding.
@@ -73,7 +73,7 @@ public PWA. The existing seven-day guest QR download behavior is unchanged.
 2. Enter the event code set in Supabase (not a Supabase publishable or secret key).
 3. Open the regular `/` route on a different phone and complete a registration
    with the new combined consent; take a photo and wait for the QR.
-4. Within one refresh interval (~60 seconds), the new card should appear on TV.
+4. Within one refresh interval (~30 seconds), the new card should appear on TV.
 5. Create 17+ approved cards or use approved test registrations to check
    that a card flips to reveal additional photos.
 6. Check that a pre-existing registration with
