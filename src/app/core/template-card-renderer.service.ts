@@ -101,20 +101,22 @@ export class TemplateCardRendererService {
       x, y, bounds.width * scale, bounds.height * scale);
     ctx.restore();
 
-    this.drawCardInformation(ctx, data);
+    // The exported template already contains its own score/position artwork.
+    // Don't draw these a second time on the completed photo.
+    this.drawCardInformation(ctx, data, false);
   }
 
-  private drawCardInformation(ctx: CanvasRenderingContext2D, data: CardData) {
-    // Draw ONLY the score and position lettering directly over the portrait.
-    // Never clear or fill a rectangle here: clearing erases the underlying
-    // camera photo and creates a black hole in the capture preview.
-    // Solid black lettering only, with no white outline or background.
-    ctx.fillStyle = '#000';
-    ctx.textAlign = 'left';
-    ctx.font = '900 88px "Chakra Petch", sans-serif';
-    ctx.fillText(String(data.match.overall), 198, 568, 165);
-    ctx.font = '900 51px "Chakra Petch", sans-serif';
-    ctx.fillText(data.position, 200, 637, 150);
+  private drawCardInformation(ctx: CanvasRenderingContext2D, data: CardData, showPreviewScore = true) {
+    // Additional score/position lettering is a camera framing guide ONLY.
+    // Never draw a background box or duplicate it in the final exported card.
+    if (showPreviewScore) {
+      ctx.fillStyle = '#000';
+      ctx.textAlign = 'left';
+      ctx.font = '900 88px "Chakra Petch", sans-serif';
+      ctx.fillText(String(data.match.overall), 198, 568, 165);
+      ctx.font = '900 51px "Chakra Petch", sans-serif';
+      ctx.fillText(data.position, 200, 637, 150);
+    }
 
     ctx.fillStyle = '#000'; ctx.fillRect(168, 862, 542, 82);
     ctx.fillStyle = '#fff'; ctx.font = '900 38px "Chakra Petch", sans-serif';
