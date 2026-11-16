@@ -62,7 +62,7 @@
         <canvas #liveCameraCanvas [class.template-live-card]="store.renderEngine()==='template'" class="live-card-canvas" width="1080" height="1920" aria-label="Live Card Preview"></canvas>
         <div class="count" *ngIf="store.stage()==='countdown'"><strong>{{store.countdown()}}</strong><span>GET READY</span></div>
         <div class="recording" *ngIf="store.stage()==='recording'"><i></i> CELEBRATE!</div>
-        <div *ngIf="store.renderEngine()==='template'" class="preview-hint">GREEN BACKDROP = LIVE CUTOUT · FINAL PHOTO USES ORMBG</div>
+        <div *ngIf="store.renderEngine()==='template'" class="preview-hint">BLACK BACKDROP = LIVE CUTOUT · FINAL PHOTO USES ORMBG</div>
       </div>
 
       <div class="iphone-shutter-bar" *ngIf="store.stage()==='camera'">
