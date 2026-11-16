@@ -142,17 +142,21 @@ export class TemplateCardRendererService {
     ctx.drawImage(this.template, 0, 0, this.width, this.height);
     const sw = video.videoWidth, sh = video.videoHeight;
     if (sw && sh) {
-      // Show the whole camera image INSIDE the card window. This never
-      // artificially zooms the camera; opaque surroundings are only a preview.
-      const slot = {x:165,y:342,width:546,height:519};
-      const scale = Math.min(slot.width / sw, slot.height / sh);
+      // Use the SAME portrait window as final compose (including the area
+      // above the inner white border). Fill it like a live photo-booth frame,
+      // rather than shrinking the entire camera feed into the lower panel.
+      // ORMBG still runs only after capture, so silhouette-specific sizing
+      // cannot be identical without live subject detection.
+      const slot = {x:165,y:250,width:546,height:611};
+      // CSS object-fit:cover equivalent; preserve aspect ratio and crop excess.
+      const scale = Math.max(slot.width / sw, slot.height / sh);
       const w = sw * scale, h = sh * scale;
       const x = slot.x + (slot.width - w) / 2;
-      const y = slot.y + slot.height - h;
+      const y = slot.y + (slot.height - h) / 2;
       ctx.save();
-      ctx.beginPath(); ctx.rect(slot.x,slot.y,slot.width,slot.height); ctx.clip();
+      ctx.beginPath();ctx.rect(slot.x,slot.y,slot.width,slot.height);ctx.clip();
       if (data.facingMode === 'user') {
-        ctx.translate(2*x+w,0); ctx.scale(-1,1);
+        ctx.translate(2*x+w,0);ctx.scale(-1,1);
       }
       ctx.drawImage(video,x,y,w,h);
       ctx.restore();
@@ -166,8 +170,8 @@ export class TemplateCardRendererService {
   }
 
   /**
-   * No live AI or gate: show the full uncropped camera image on the KORA
-   * template and leave the shutter available. ORMBG runs after capture.
+   * No live AI or gate: show the camera in the same oversized portrait
+   * window as the final card and leave the shutter available. ORMBG runs after capture.
    */
   async startLivePreview(video: HTMLVideoElement, canvas: HTMLCanvasElement, getData: () => CardData) {
     this.stop();
