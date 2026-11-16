@@ -1,17 +1,17 @@
-# KORA Event TV Wall — 6×3 portrait cards with one-hour visibility
+# KORA Event TV Wall — 6×2 portrait cards with one-hour visibility
 
 ## What it does
 
 Open `/wall` on the deployed KORA PWA (for example,
 `https://kora-cards.vercel.app/wall`). The photo-booth stays at `/`.
 
-- Shows **18 portrait-focused card slots in a 6-column × 3-row grid** on landscape TVs.
+- Shows **12 portrait-focused card slots in a 6-column × 2-row grid** on landscape TVs.
 - Automatically flips one tile to a different card every 3.5 seconds,
   continually cycling through the available event-approved cards.
 - Checks for new cards every 30 seconds and refreshes the full collection and
   signed image URLs approximately every 4 minutes.
 - Pages through the server's data in groups of 80, supporting large events.
-- Displays a **separate QR code next to each photo** in the 6×3 wall, on
+- Displays a **QR code overlay in the bottom-right corner of each portrait card** in the 6×2 wall, on
   both sides of a flipping tile. Each QR opens that specific finished card.
   Click/tap a small QR to show a **larger scan-friendly QR and card**.
 - QR images are generated locally using KORA's existing QR utility, so no
@@ -21,10 +21,10 @@ Open `/wall` on the deployed KORA PWA (for example,
   **QR download link lasts seven days after card upload**: opening it causes
   the server to verify the event consent and token, then redirect to a fresh
   60-second signed PNG download. A test link appears in the enlarged QR view.
-  Because 18 cards share a TV screen, QR readability still depends on screen
+  Because 12 cards share a TV screen, QR readability still depends on screen
   size and distance; use the enlarged scan view when needed.
 - Has a browser fullscreen control and a **LOCK** button to clear the access code.
-- When fewer than 18 eligible cards have arrived, unused slots show KORA branding.
+- When fewer than 12 eligible cards have arrived, unused slots show KORA branding.
 - **Every card stays visible for at most one hour after its successful upload.**
   Server filtering includes only cards with `card_uploaded_at` in the last
   60 minutes, and the TV independently removes expired cards every second.
@@ -96,7 +96,7 @@ public PWA. The existing seven-day guest QR download behavior is unchanged.
 5. Click the QR next to a newly created card, then click **Test download
    link** in the enlarged scan panel. It must open/download that exact PNG.
    Scan the enlarged QR with a second phone and verify the same result.
-6. Create 19+ approved cards or use approved test registrations to check
+6. Create 13+ approved cards or use approved test registrations to check
    that a card flips to reveal additional photos.
 7. Check that a pre-existing registration with
    `event_screen_consent=false` is **not** shown.
@@ -165,10 +165,10 @@ since their upload, whether or not a network refresh succeeds. If the TV is
 on a background/sleeping browser that throttles timers, the timer runs when
 execution resumes. Cards are still excluded by the server on the next fetch.
 
-The previous 4×4 arrangement has been replaced with six columns and three
-rows (18 visible tiles), while individual finished card artwork remains
-portrait/vertical. The compact QR is next to each image; enlarge it to scan
-from farther away.
+The previous 4×4 arrangement has been replaced with six columns and two
+rows (12 visible tiles), while individual finished card artwork remains
+portrait/vertical. The compact QR sits over the bottom-right corner without any SCAN label;
+enlarge it to scan from farther away.
 
 **Only redeploy `kora-wall-feed`** for this particular update: no new SQL
 columns and no change to `kora-wall-download` are required if you deployed
