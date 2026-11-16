@@ -26,7 +26,7 @@ function responseJson(status:number,data:Record<string,unknown>,origin:string){
   return new Response(JSON.stringify(data),{status,headers:{
     'Content-Type':'application/json','Cache-Control':'no-store',
     'Access-Control-Allow-Origin':origin,'Vary':'Origin',
-    'Access-Control-Allow-Headers':'content-type,apikey,x-kora-consent,authorization,x-client-info',
+    'Access-Control-Allow-Headers':'content-type,apikey,x-kora-consent,x-kora-registration-token,authorization,x-client-info',
     'Access-Control-Allow-Methods':'POST,OPTIONS',
   }});
 }
@@ -37,6 +37,11 @@ function isValidPng(bytes:Uint8Array):boolean{
     String.fromCharCode(...bytes.slice(12,16))==='IHDR'&&
     dv.getUint32(16,false)===877&&dv.getUint32(20,false)===1558&&
     bytes[24]===8&&[2,6].includes(bytes[25]); // RGB / RGBA, 8-bit
+}
+async function hashLinkToken(token:string){
+  const input=new TextEncoder().encode(salt+'|registration-link|'+token);
+  const digest=await crypto.subtle.digest('SHA-256',input);
+  return [...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join('');
 }
 async function hashClient(ip:string){
   const input=new TextEncoder().encode(salt+'|'+ip);
@@ -82,6 +87,13 @@ Deno.serve(async request=>{
     for(const chunk of chunks){image.set(chunk,offset);offset+=chunk.length}
     if(!isValidPng(image))return responseJson(400,{error:'Invalid KORA card image dimensions or format'},origin);
 
+    // Optional bearer token binds the completed image to a consented player.
+    // It is unguessable, and only its salted hash is stored in the database.
+    const registrationToken=request.headers.get('x-kora-registration-token');
+    if(registrationToken && !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(registrationToken)){
+      return responseJson(400,{error:'Invalid player photo-link token'},origin);
+    }
+
     // IP supplied by the Supabase gateway; the rate limit is an abuse mitigation,
     // not proof of a human. Apply gateway-level rate limits / CAPTCHA if targeted.
     const ip=request.headers.get('cf-connecting-ip')||
@@ -94,13 +106,44 @@ Deno.serve(async request=>{
     if(quotaError)throw quotaError;
     if(!allowed)return responseJson(429,{error:'Too many card uploads. Please try again later.'},origin);
 
+    // Confirm the registration exists and separately consented to cloud card
+    // storage BEFORE committing the PNG, so invalid tokens cannot attach
+    // photos to someone else's record.
+    let registrationId:string|undefined;
+    if(registrationToken){
+      const {data:player,error:playerError}=await admin.from('kora_player_registrations')
+        .select('id,card_storage_path')
+        .eq('card_link_token_hash',await hashLinkToken(registrationToken))
+        .eq('card_cloud_consent',true)
+        .maybeSingle();
+      if(playerError)throw playerError;
+      if(!player)return responseJson(403,{error:'Player registration not found or cloud photo consent missing'},origin);
+      if(player.card_storage_path)return responseJson(409,{error:'This registration already has a saved card'},origin);
+      registrationId=player.id;
+    }
+
     const path=`${new Date().toISOString().slice(0,10)}/${crypto.randomUUID()}.png`;
     const {error:uploadError}=await admin.storage.from('kora-cards')
       .upload(path,image,{contentType:'image/png',cacheControl:'3600',upsert:false});
     if(uploadError)throw uploadError;
     const {data:link,error:linkError}=await admin.storage.from('kora-cards')
       .createSignedUrl(path,7*24*60*60,{download:'kora-card.png'});
-    if(linkError||!link?.signedUrl)throw linkError??new Error('Cannot generate download link');
+    if(linkError||!link?.signedUrl){
+      await admin.storage.from('kora-cards').remove([path]);
+      throw linkError??new Error('Cannot generate download link');
+    }
+    if(registrationId){
+      // Save the private Storage path, not the expiring signed URL.
+      // Only one image per registration; reject a competing request.
+      const {data:linked,error:linkWriteError}=await admin.from('kora_player_registrations')
+        .update({card_storage_path:path,card_uploaded_at:new Date().toISOString()})
+        .eq('id',registrationId).is('card_storage_path',null)
+        .select('id').maybeSingle();
+      if(linkWriteError||!linked){
+        await admin.storage.from('kora-cards').remove([path]);
+        throw linkWriteError??new Error('Registration was already linked to a card');
+      }
+    }
     return responseJson(200,{downloadUrl:link.signedUrl},origin);
   }catch(error){
     console.error('KORA card upload failed',error);

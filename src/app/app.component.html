@@ -56,6 +56,12 @@
         <input [ngModel]="store.playerNumber()" (ngModelChange)="store.setNumber($event)"
           type="number" inputmode="numeric" min="0" max="99" placeholder="10" required>
       </label>
+      <label class="cloud-consent-label data-consent-label">
+        <input type="checkbox" [checked]="store.dataConsent()"
+          (change)="store.setDataConsent($any($event.target).checked)"
+          aria-label="Agree to securely save my player details in KORA's database">
+        <span>I agree to KORA saving my name, email, Instagram, telephone, position and shirt number in its private database for card registration. This is not marketing consent.</span>
+      </label>
       <label class="cloud-consent-label">
         <input type="checkbox" [checked]="store.cloudConsent()"
           (change)="store.setCloudConsent($any($event.target).checked)"
@@ -63,8 +69,9 @@
         <span>I agree to my finished KORA card being saved in KORA's private cloud storage.</span>
       </label>
     </div>
-    <button class="primary" (click)="store.openCamera()"><span class="camera-icon">●</span> OPEN CAMERA <b>→</b></button>
-    <label class="upload-button" style="display:block;text-align:center;padding:12px;border:1px solid #ed1c24">OR UPLOAD PHOTO<input type="file" accept="image/*" (change)="store.selectCardPhoto($event)" style="display:none"></label>
+    <button class="primary" (click)="store.openCamera()" [disabled]="store.registrationBusy()"><span class="camera-icon">●</span> {{store.registrationBusy() ? 'SAVING DETAILS…' : 'OPEN CAMERA'}} <b>→</b></button>
+    <label class="upload-button" [class.upload-disabled]="store.registrationBusy()" style="display:block;text-align:center;padding:12px;border:1px solid #ed1c24">OR UPLOAD PHOTO<input type="file" accept="image/*" (change)="store.selectCardPhoto($event)" [disabled]="store.registrationBusy()" style="display:none"></label>
+    <p class="privacy">Your photo is processed on this device.</p>
     <div class="error" *ngIf="store.error()">{{store.error()}}</div>
   </section>
 
