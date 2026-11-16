@@ -170,10 +170,10 @@ export class TemplateCardRendererService {
   }
 
   /**
-   * Lightweight green-screen preview, with NO background-removal AI.
-   * Only key out pixels when the corners indicate a green backdrop.
-   * On ordinary backgrounds show raw camera video in the card instead.
-   * The final photograph still uses high-quality ORMBG after capture.
+   * Fast, non-AI black-backdrop preview. Only remove dark neutral regions
+   * connected to the frame edges; enclosed dark hair/clothes remain intact.
+   * If the sampled backdrop is not black, show the unmodified live camera.
+   * The captured photo always uses ORMBG for the final card.
    */
   async startLivePreview(video: HTMLVideoElement, canvas: HTMLCanvasElement, getData: () => CardData) {
     this.stop();
@@ -183,14 +183,17 @@ export class TemplateCardRendererService {
     canvas.width = this.width;
     canvas.height = this.height;
 
-    // Work with small frames; never run ORMBG/ONNX on the live camera.
     const sample = document.createElement('canvas');
     const sampleWidth = 256;
     let sampleCtx: CanvasRenderingContext2D | null = null;
     let lastPaint = 0;
-    const isGreen = (r: number, g: number, b: number) =>
-      g > 65 && g > r * 1.28 && g > b * 1.16;
-
+    // Dark and approximately neutral, rather than dark saturated clothing.
+    const isBackdrop = (r: number, g: number, b: number) => {
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      return max < 72 && max - min < 25 &&
+        (0.2126 * r + 0.7152 * g + 0.0722 * b) < 52;
+    };
     const tick = (time: number) => {
       if (generation !== this.generation) return;
       if (video.readyState >= 2 && time - lastPaint >= 130) {
@@ -216,28 +219,61 @@ export class TemplateCardRendererService {
             const pixels = ctx.getImageData(0, 0, w, h);
             const rgba = pixels.data;
 
-            // Require a genuine green screen around the player. Otherwise
-            // color keying would erase green clothing or random scenery.
-            const offsets = [
-              [0.04, 0.06], [0.96, 0.06], [0.04, 0.94], [0.96, 0.94],
+            // Disable keying for non-black locations to protect the player.
+            const corners = [
+              [0.04, 0.06], [0.96, 0.06],
+              [0.04, 0.94], [0.96, 0.94],
               [0.04, 0.5], [0.96, 0.5],
             ];
-            let greenCorners = 0;
-            for (const [fx, fy] of offsets) {
+            let darkSamples = 0;
+            for (const [fx, fy] of corners) {
               const x = Math.min(w - 1, Math.floor(fx * w));
               const y = Math.min(h - 1, Math.floor(fy * h));
               const i = (y * w + x) * 4;
-              if (isGreen(rgba[i], rgba[i + 1], rgba[i + 2])) greenCorners++;
+              if (isBackdrop(rgba[i], rgba[i + 1], rgba[i + 2])) darkSamples++;
             }
-            if (greenCorners >= 4) {
-              for (let i = 0; i < rgba.length; i += 4) {
-                const r = rgba[i], g = rgba[i + 1], b = rgba[i + 2];
-                // Softer edge around the key threshold minimizes halos.
-                const dominance = Math.min(g / Math.max(1, r), g / Math.max(1, b));
-                if (isGreen(r, g, b)) rgba[i + 3] = 0;
-                else if (g > 60 && dominance > 1.1) {
-                  rgba[i + 3] = Math.min(255, Math.round(255 * (1.28 - dominance) / 0.18));
+
+            if (darkSamples >= 4) {
+              // Flood-fill only background pixels connected to the edges.
+              // This avoids deleting isolated dark sections within clothing.
+              const visited = new Uint8Array(w * h);
+              const queue = new Int32Array(w * h);
+              let head = 0, tail = 0;
+              const enqueue = (index: number) => {
+                if (visited[index]) return;
+                visited[index] = 1;
+                const off = index * 4;
+                if (isBackdrop(rgba[off], rgba[off + 1], rgba[off + 2])) {
+                  queue[tail++] = index;
                 }
+              };
+              for (let x = 0; x < w; x++) {
+                enqueue(x);
+                enqueue((h - 1) * w + x);
+              }
+              for (let y = 0; y < h; y++) {
+                enqueue(y * w);
+                enqueue(y * w + w - 1);
+              }
+              while (head < tail) {
+                const index = queue[head++];
+                rgba[index * 4 + 3] = 0;
+                const x = index % w, y = (index / w) | 0;
+                if (x > 0) enqueue(index - 1);
+                if (x + 1 < w) enqueue(index + 1);
+                if (y > 0) enqueue(index - w);
+                if (y + 1 < h) enqueue(index + w);
+              }
+              // A small transparent edge softening pass hides jagged pixels.
+              // Keep it local to the detected background boundary.
+              for (let index = 0; index < visited.length; index++) {
+                if (visited[index] !== 0) continue;
+                const x = index % w, y = (index / w) | 0;
+                const touchesKey = (x > 0 && rgba[(index - 1) * 4 + 3] === 0) ||
+                  (x + 1 < w && rgba[(index + 1) * 4 + 3] === 0) ||
+                  (y > 0 && rgba[(index - w) * 4 + 3] === 0) ||
+                  (y + 1 < h && rgba[(index + w) * 4 + 3] === 0);
+                if (touchesKey) rgba[index * 4 + 3] = 170;
               }
               ctx.putImageData(pixels, 0, 0);
               try {
