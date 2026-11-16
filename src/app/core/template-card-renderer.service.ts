@@ -170,8 +170,10 @@ export class TemplateCardRendererService {
   }
 
   /**
-   * No live AI or gate: show the camera in the same oversized portrait
-   * window as the final card and leave the shutter available. ORMBG runs after capture.
+   * Preview a real ORMBG cutout, using lower-resolution camera snapshots to
+   * protect frame rate and memory. Unlike the removed live detection, this
+   * never gates or disables the shutter. A slow device may update only every
+   * few seconds; final capture always runs ORMBG on its full photo.
    */
   async startLivePreview(video: HTMLVideoElement, canvas: HTMLCanvasElement, getData: () => CardData) {
     this.stop();
@@ -180,12 +182,53 @@ export class TemplateCardRendererService {
     if (generation !== this.generation) return;
     canvas.width = this.width;
     canvas.height = this.height;
-    let lastFrame = 0;
+    let lastPaint = 0;
+    let lastAttempt = 0;
+    let processing = false;
+    let cutout: HTMLCanvasElement | undefined;
+    let cutoutFacing: CardData['facingMode'] | undefined;
     const tick = (time: number) => {
       if (generation !== this.generation) return;
-      if (video.readyState >= 2 && time - lastFrame >= 100) {
-        lastFrame = time;
-        this.drawLiveCardFrame(canvas, video, getData());
+      if (video.readyState >= 2) {
+        const data = getData();
+        // Never show an old front-camera cutout when switching cameras.
+        if (cutoutFacing !== undefined && cutoutFacing !== data.facingMode) cutout = undefined;
+        if (time - lastPaint >= 100) {
+          lastPaint = time;
+          if (cutout) {
+            try { this.compose(canvas, cutout, data); }
+            catch { cutout = undefined; this.drawLiveCardFrame(canvas, video, data); }
+          } else {
+            // Fallback while the model loads, or if matting isn't possible.
+            this.drawLiveCardFrame(canvas, video, data);
+          }
+        }
+        if (!processing && time - lastAttempt >= 1800) {
+          processing = true;
+          lastAttempt = time;
+          const snapshotData = data;
+          // Smaller than final capture; a snapshot is immutable during inference.
+          const sw = video.videoWidth, sh = video.videoHeight;
+          const factor = Math.min(1, 320 / sw, 480 / sh);
+          const snapshot = document.createElement('canvas');
+          snapshot.width = Math.max(1, Math.round(sw * factor));
+          snapshot.height = Math.max(1, Math.round(sh * factor));
+          const ctx = snapshot.getContext('2d');
+          if (ctx) {
+            if (snapshotData.facingMode === 'user') {
+              ctx.translate(snapshot.width, 0); ctx.scale(-1, 1);
+            }
+            ctx.drawImage(video, 0, 0, snapshot.width, snapshot.height);
+            void this.quality.isolate(snapshot).then(person => {
+              if (generation !== this.generation || getData().facingMode !== snapshotData.facingMode) return;
+              cutout = person;
+              cutoutFacing = snapshotData.facingMode;
+            }).catch(error => {
+              // Failure of a preview frame must never block taking the photo.
+              if (generation === this.generation) console.warn('KORA preview cutout unavailable', error);
+            }).finally(() => { processing = false; });
+          } else processing = false;
+        }
       }
       this.frameId = requestAnimationFrame(tick);
     };
