@@ -1,16 +1,16 @@
 # KORA PWA — Supabase QR card downloads (no staff or customer login)
 
 KORA uploads the fully rendered 877×1558 KORA player card PNG to a private
-Supabase Storage bucket **only when the cloud-card checkbox is checked**.
-Separately, when the guest checks the **player-details consent checkbox**,
+Supabase Storage bucket **only when the single combined consent checkbox is checked**.
+With the same consent checkbox checked,
 KORA stores their name, email, Instagram, telephone, position and shirt number
 in the private `public.kora_player_registrations` database table. These are
-independent choices. The raw camera photo is not uploaded. The player's name
+one combined choice. The raw camera photo is not uploaded. The player's name
 and stats are visible within the finished PNG.
 
 ## Customer flow
 
-1. Enter player details and **check the cloud storage consent box**.
+1. Enter player details and **check the combined details-and-card consent box**.
 2. Capture/upload photo → ORMBG renders the finished card.
 3. The PWA posts the final PNG to a server-side Supabase Edge Function.
 4. If upload succeeds, the server returns a **seven-day private signed download URL**.
@@ -103,7 +103,7 @@ Do not set `Access-Control-Allow-Origin: *` as a shortcut.
   challenge or a device-specific authentication scheme and usage monitoring.
 - No customer or staff login is required to register or upload a card.
   Customer records are only written through the server function when the
-  separate player-data consent is checked. The table has RLS enabled and no
+  combined player-details-and-finished-card consent is checked. The table has RLS enabled and no
   public select/insert/update/delete policies. The quota table stores salted
   hashes, not raw IPs. Configure an appropriate retention and deletion policy.
 - Signed-link expiration **does not delete an image from Supabase**.
@@ -149,13 +149,12 @@ unchanged and must remain deployed.
    `KORA_RATE_LIMIT_SALT` server secrets as `kora-card-upload`. Reuse the
    existing **server-only** Supabase project credentials. Never put service
    secrets in `src/environments/`.
-3. In the KORA intro form, enter all six fields and check **I agree to KORA
-   saving my details**. Select **Open Camera** or **Upload Photo**. Registration
+3. In the KORA intro form, enter all six fields and check the **combined
+   data-and-finished-card consent checkbox**. Select **Open Camera** or **Upload Photo**. Registration
    is saved before entering the next screen. If it fails, the form displays an
    error so the guest knows their information was not recorded. If the
-   **player-details consent remains unchecked**, no details are sent.
-   The independent **cloud-card consent** still controls the finished PNG
-   and QR code.
+   **combined checkbox remains unchecked**, no data is saved, no PNG is
+   uploaded and no QR code appears.
 4. Verify the record in Supabase **Table Editor → kora_player_registrations**,
    or run this administrative SQL query (not from the PWA):
    ```sql
@@ -169,8 +168,8 @@ unchanged and must remain deployed.
 
 ### Privacy and production hardening
 
-- The form's data-consent checkbox is **separate** from the image-storage
-  checkbox and is **not consent for marketing messages**. Provide a clear
+- The form uses **one combined opt-in checkbox** for both saving customer
+  details and uploading/linking the finished card; it is **not marketing consent**. Provide a clear
   privacy notice identifying KORA as controller, purpose, lawful basis,
   retention period, contact and deletion rights before a live event.
 - Decide and implement a deletion schedule. The SQL file includes an example
@@ -187,8 +186,8 @@ unchanged and must remain deployed.
 
 ## Linking the finished card image to the customer record
 
-A customer who checks **both** independent consents (player details and
-finished-card cloud storage) now has their card linked to their record:
+A customer who checks the **single combined consent** for player details and
+finished-card cloud storage has their card linked to their record:
 
 1. `kora-player-save` inserts the private registration and returns an
    unguessable session-only linking token; the database stores only its
@@ -202,11 +201,9 @@ finished-card cloud storage) now has their card linked to their record:
 4. The ordinary seven-day QR signed download URL is still returned to the
    kiosk; this expiring URL is **not** stored in the database.
 
-No linking token is sent when the customer leaves player-data consent
-unchecked. If only cloud-card consent is checked, the card continues to
-upload and show a QR, but no player registration is stored or linked.
-If only data consent is checked, the details are saved but no card image
-is uploaded.
+No linking token is sent when the combined consent is unchecked. In that
+case neither player details nor the finished card are uploaded and there
+is no QR download. Local card generation, Save and Print still work.
 
 **Required upgrade steps (existing installations):**
 
@@ -220,8 +217,8 @@ is uploaded.
    npx supabase functions deploy kora-player-save --no-verify-jwt
    npx supabase functions deploy kora-card-upload --no-verify-jwt
    ```
-3. Rebuild/refresh the KORA PWA, register a new test player with **both**
-   checkboxes checked, capture a card, and wait for the QR button to activate.
+3. Rebuild/refresh the KORA PWA, register a new test player with **the combined**
+   checkbox checked, capture a card, and wait for the QR button to activate.
 4. Verify the linked private storage path using administrative SQL:
    ```sql
    select created_at, name, email, card_storage_path, card_uploaded_at
