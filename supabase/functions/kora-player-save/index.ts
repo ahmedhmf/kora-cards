@@ -114,6 +114,7 @@ Deno.serve(async request=>{
       name,email,instagram,telephone,position,
       shirt_number:shirtNumber,card_cloud_consent:cloudConsent,
       event_screen_consent:eventScreenConsent,
+      wall_share_token:eventScreenConsent?crypto.randomUUID():null,
       data_consent_version:eventScreenConsent?'v2-event-display':'v1',
       card_link_token_hash:cloudConsent?await hashLinkToken(linkToken):null,
     });
