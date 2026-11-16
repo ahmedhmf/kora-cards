@@ -119,3 +119,42 @@
  .wall-logo.wall-sfl-logo{width:clamp(34px,7vw,65px);height:clamp(36px,6vh,65px)}
  .wall-brand-divider{height:45%}
 }
+
+/* Event partner masthead: SFL left, KORA EXPERIENCE centered, REFUEL right. */
+.wall-header{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,2fr) minmax(0,1fr);
+  align-items:center;
+  justify-content:stretch;
+  gap:clamp(8px,1.4vw,28px);
+  height:clamp(65px,9.5vh,118px);
+}
+.wall-header-partner{display:flex;align-items:center;min-width:0;height:100%}
+.wall-header-left{justify-content:flex-start}
+.wall-header-right{justify-content:flex-end}
+.wall-header-center{display:flex;justify-content:center;align-items:center;gap:clamp(7px,.95vw,17px);min-width:0}
+.wall-header-logo{display:block;object-fit:contain;flex-shrink:1;min-width:0;max-height:100%}
+.wall-sfl-mark{height:clamp(42px,7.5vh,90px);width:auto;max-width:min(100%,110px)}
+.wall-kora-mark{width:clamp(100px,15vw,260px);height:auto;max-height:clamp(25px,5.4vh,64px)}
+.wall-refuel-mark{width:clamp(90px,14vw,240px);height:auto;max-height:clamp(28px,6.5vh,75px)}
+.wall-experience{
+  color:#fff;font-weight:900;font-size:clamp(13px,2vw,34px);
+  letter-spacing:.11em;line-height:1;white-space:nowrap;
+}
+/* Controls live on the bottom right; the footer no longer shows sync/time. */
+.wall-bottom{min-height:clamp(39px,5vh,65px);justify-content:space-between;gap:clamp(8px,1vw,22px)}
+.wall-footer-copy{white-space:nowrap;font-size:clamp(10px,.95vw,18px)}
+.wall-footer-controls{margin-left:auto;display:flex;align-items:center;justify-content:flex-end;gap:clamp(7px,1vw,18px);white-space:nowrap}
+.wall-footer-controls .wall-live{font-size:clamp(10px,.8vw,15px);letter-spacing:.14em}
+.wall-footer-controls .wall-header-btn{padding:clamp(7px,.62vw,12px) clamp(8px,.78vw,16px)}
+@media(max-width:820px){
+  .wall-header{grid-template-columns:1fr 2.3fr 1fr;gap:6px}
+  .wall-sfl-mark{max-width:53px;max-height:54px}
+  .wall-kora-mark{width:clamp(63px,14vw,120px)}
+  .wall-refuel-mark{width:clamp(58px,13vw,110px)}
+  .wall-experience{font-size:clamp(10px,1.6vw,17px);letter-spacing:.05em}
+  .wall-header-center{gap:4px}
+  .wall-footer-copy{font-size:clamp(8px,1.1vw,11px)}
+  .wall-footer-controls{gap:5px}
+  .wall-footer-controls .wall-header-btn{padding:5px 6px}
+}
