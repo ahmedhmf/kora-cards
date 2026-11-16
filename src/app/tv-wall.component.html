@@ -64,7 +64,8 @@
           <strong>SCAN TO GET YOUR CARD</strong>
           <img [src]="qrImage(card)" alt="Scannable QR code to download the selected player card">
           <p>Point your phone camera here to download this player card.</p>
-          <small>This TV download link is refreshed automatically.</small>
+          <a class="wall-qr-test-link" [href]="card.qrUrl" target="_blank" rel="noopener noreferrer">Test download link ↗</a>
+          <small>QR link valid for 7 days after the card was created.</small>
         </div>
       </div>
     </div>
