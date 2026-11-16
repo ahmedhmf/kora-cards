@@ -136,3 +136,28 @@
   accent-color:#ed1c24;
   cursor:pointer;
 }
+
+/* Consent: checkbox immediately BEFORE the text, aligned in one row. */
+.intro .player-fields label.cloud-consent-label{
+  display:grid!important;
+  grid-template-columns:15px minmax(0,1fr)!important;
+  align-items:center!important;
+  justify-content:start!important;
+  column-gap:9px!important;
+  width:100%;
+  flex-wrap:nowrap!important;
+}
+.intro .player-fields .cloud-consent-label input[type="checkbox"]{
+  grid-column:1;
+  grid-row:1;
+  justify-self:start;
+  align-self:center;
+  position:static!important;
+}
+.intro .player-fields .cloud-consent-label span{
+  grid-column:2;
+  grid-row:1;
+  min-width:0;
+  display:block;
+  text-align:left;
+}
