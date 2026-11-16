@@ -58,15 +58,9 @@
       </label>
       <label class="cloud-consent-label data-consent-label">
         <input type="checkbox" [checked]="store.dataConsent()"
-          (change)="store.setDataConsent($any($event.target).checked)"
-          aria-label="Agree to securely save my player details in KORA's database">
-        <span>I agree to KORA saving my name, email, Instagram, telephone, position and shirt number in its private database for card registration. This is not marketing consent.</span>
-      </label>
-      <label class="cloud-consent-label">
-        <input type="checkbox" [checked]="store.cloudConsent()"
-          (change)="store.setCloudConsent($any($event.target).checked)"
-          aria-label="Agree to store my finished KORA card in private cloud storage">
-        <span>I agree to my finished KORA card being saved in KORA's private cloud storage.</span>
+          (change)="store.setCombinedConsent($any($event.target).checked)"
+          aria-label="Agree to save my player details and finished KORA card in private KORA storage">
+        <span>I agree to KORA securely saving my name, email, Instagram, telephone number, position, T-shirt number and finished KORA card image in its private database and cloud storage, linking my card to my registration. The card's QR download link is valid for 7 days. This is not marketing consent.</span>
       </label>
     </div>
     <button class="primary" (click)="store.openCamera()" [disabled]="store.registrationBusy()"><span class="camera-icon">●</span> {{store.registrationBusy() ? 'SAVING DETAILS…' : 'OPEN CAMERA'}} <b>→</b></button>
