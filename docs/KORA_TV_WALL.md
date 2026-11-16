@@ -6,9 +6,11 @@ Open `/wall` on the deployed KORA PWA (for example,
 `https://kora-cards.vercel.app/wall`). The photo-booth stays at `/`.
 
 - Shows **12 portrait-focused card slots in a 6-column × 2-row grid** on landscape TVs.
-- Header features the supplied white **KORA** and **SFL Social Football League** logos
-  instead of the old PLAYER WALL title. The originals are traced to compact
-  scalable SVG assets in `public/brand/` for a crisp TV display.
+- Header features **Social Football League** at left, **KORA EXPERIENCE** centered,
+  and the supplied **REFUEL** wordmark at right. The logos are white scalable SVGs.
+- The **LIVE**, **FULLSCREEN**, and **LOCK** controls sit at the bottom right,
+  while sync timestamp and on-screen duration labels are hidden.
+- Empty card tiles alternate between dimmed KORA and SFL logos.
 - The white bottom-right QR overlay is larger for better scanning at a distance;
   the card still fills its portrait slot, and the enlarged QR view remains available.
 - Automatically flips one tile to a different card every 3.5 seconds,
