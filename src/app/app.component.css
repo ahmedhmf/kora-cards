@@ -161,3 +161,37 @@
   display:block;
   text-align:left;
 }
+
+/* QR panel is minimized by default and toggled by the toolbar QR button. */
+.result .card-qr-panel{
+  z-index:32;
+  bottom:105px;
+  width:min(82vw,258px);
+  padding-top:30px;
+}
+.result .card-qr-close{
+  position:absolute;
+  top:6px;
+  right:7px;
+  display:grid;
+  place-items:center;
+  width:27px;
+  height:27px;
+  border:1px solid rgba(255,255,255,.28);
+  border-radius:50%;
+  background:rgba(255,255,255,.12);
+  color:#fff;
+  font:700 22px/1 sans-serif;
+  cursor:pointer;
+}
+.result-action-bar .qr-action-active{
+  border-color:#ed1c24;
+  background:rgba(237,28,36,.35);
+}
+@media(max-height:670px){
+  .result .card-qr-panel{
+    bottom:100px;
+    transform:translateX(-50%) scale(.85);
+    transform-origin:bottom center;
+  }
+}
