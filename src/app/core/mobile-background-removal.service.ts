@@ -6,6 +6,7 @@ import { env, pipeline } from '@huggingface/transformers';
 export class MobileBackgroundRemovalService {
   private remover?: Awaited<ReturnType<typeof pipeline<'background-removal'>>>;
   private pending?: Promise<Awaited<ReturnType<typeof pipeline<'background-removal'>>>>;
+  private inferences: Promise<void> = Promise.resolve();
 
   private load() {
     if (this.remover) return Promise.resolve(this.remover);
@@ -21,7 +22,15 @@ export class MobileBackgroundRemovalService {
     return this.pending;
   }
 
-  async isolate(source: HTMLCanvasElement): Promise<HTMLCanvasElement> {
+  isolate(source: HTMLCanvasElement): Promise<HTMLCanvasElement> {
+    // ORMBG's ONNX session should not run two video/photo inferences at once.
+    // Keep final capture reliable even when a preview inference is in flight.
+    const task = this.inferences.then(() => this.isolateOne(source));
+    this.inferences = task.then(() => undefined, () => undefined);
+    return task;
+  }
+
+  private async isolateOne(source: HTMLCanvasElement): Promise<HTMLCanvasElement> {
     const model = await this.load();
     const results = await model([source.toDataURL('image/png')]);
     if (!results.length) throw new Error('Portrait AI returned no image');
