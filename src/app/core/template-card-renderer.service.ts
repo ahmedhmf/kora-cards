@@ -155,8 +155,21 @@ export class TemplateCardRendererService {
       const x = slot.x + (slot.width - w) / 2;
       const y = slot.y + (slot.height - h) / 2;
       ctx.save();
+      // Chamfer ONLY the live-photo window's four corners, matching the
+      // angular sports-card style. Do not clip the template or outer card.
+      const cut = 22;
+      const left = slot.x, top = slot.y;
+      const right = slot.x + slot.width, bottom = slot.y + slot.height;
       ctx.beginPath();
-      ctx.rect(slot.x, slot.y, slot.width, slot.height);
+      ctx.moveTo(left + cut, top);
+      ctx.lineTo(right - cut, top);
+      ctx.lineTo(right, top + cut);
+      ctx.lineTo(right, bottom - cut);
+      ctx.lineTo(right - cut, bottom);
+      ctx.lineTo(left + cut, bottom);
+      ctx.lineTo(left, bottom - cut);
+      ctx.lineTo(left, top + cut);
+      ctx.closePath();
       ctx.clip();
       if (data.facingMode === 'user') {
         ctx.translate(2 * x + w, 0);
