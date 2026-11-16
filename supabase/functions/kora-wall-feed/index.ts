@@ -59,22 +59,23 @@ Deno.serve(async request=>{
 
   try{
     const admin=createClient(projectUrl,secret,{auth:{autoRefreshToken:false,persistSession:false}});
-    // Only NEW cards whose owners explicitly agreed to large-screen event
-    // display. Never return any name, email, telephone or Instagram fields.
+    // Only cards uploaded during the last 60 minutes with explicit event
+    // display consent. The screen window does not shorten the seven-day
+    // QR download eligibility or delete any stored image.
     const {data,error}=await admin.from('kora_player_registrations')
-      .select('card_storage_path,wall_share_token')
+      .select('card_storage_path,wall_share_token,card_uploaded_at')
       .eq('event_screen_consent',true)
       .eq('card_cloud_consent',true)
       .not('card_storage_path','is',null)
       .not('wall_share_token','is',null)
-      .gt('card_uploaded_at',new Date(Date.now()-7*24*60*60*1000).toISOString())
+      .gt('card_uploaded_at',new Date(Date.now()-60*60*1000).toISOString())
       .order('card_uploaded_at',{ascending:false})
       .range(offset,offset+PAGE_SIZE-1);
     if(error)throw error;
-    const valid=(data||[]).filter(row=>typeof row.card_storage_path==='string'&&typeof row.wall_share_token==='string');
+    const valid=(data||[]).filter(row=>typeof row.card_storage_path==='string'&&typeof row.wall_share_token==='string'&&typeof row.card_uploaded_at==='string');
     const paths=valid.map(row=>row.card_storage_path as string);
-    const tokens=new Map(valid.map(row=>[row.card_storage_path,row.wall_share_token]));
-    const cards:{path:string;url:string;qrUrl:string}[]=[];
+    const tokens=new Map(valid.map(row=>[row.card_storage_path,{token:row.wall_share_token,uploadedAt:row.card_uploaded_at}]));
+    const cards:{path:string;url:string;qrUrl:string;uploadedAt:string}[]=[];
     if(paths.length){
       const {data:urls,error:signError}=await admin.storage.from('kora-cards')
         .createSignedUrls(paths,10*60);
@@ -82,7 +83,7 @@ Deno.serve(async request=>{
       for(const item of urls||[]){
         if(item.signedUrl&&item.path){
           const token=tokens.get(item.path);
-          if(token)cards.push({path:item.path,url:item.signedUrl,qrUrl:`${projectUrl}/functions/v1/kora-wall-download?t=${token}`});
+          if(token)cards.push({path:item.path,url:item.signedUrl,qrUrl:`${projectUrl}/functions/v1/kora-wall-download?t=${token.token}`,uploadedAt:token.uploadedAt});
         }
       }
     }
