@@ -267,7 +267,7 @@ export class TemplateCardRendererService {
               // A small transparent edge softening pass hides jagged pixels.
               // Keep it local to the detected background boundary.
               for (let index = 0; index < visited.length; index++) {
-                if (visited[index] !== 0) continue;
+                if (rgba[index * 4 + 3] === 0) continue;
                 const x = index % w, y = (index / w) | 0;
                 const touchesKey = (x > 0 && rgba[(index - 1) * 4 + 3] === 0) ||
                   (x + 1 < w && rgba[(index + 1) * 4 + 3] === 0) ||
