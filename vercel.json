@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/wall",
+      "destination": "/index.html"
+    }
+  ]
+}

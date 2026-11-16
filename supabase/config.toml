@@ -7,3 +7,11 @@ verify_jwt = false
 # Consent, server validation, origin checks and quota are enforced there.
 [functions.kora-player-save]
 verify_jwt = false
+
+# Event wall is display-only, protected by a separate server-side access code.
+[functions.kora-wall-feed]
+verify_jwt = false
+
+# Public bearer-QR redirect. Verifies consent, token and seven-day expiry.
+[functions.kora-wall-download]
+verify_jwt = false

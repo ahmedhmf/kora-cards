@@ -1,0 +1,95 @@
+<main class="wall-shell">
+  <header class="wall-header" aria-label="Event partners">
+    <div class="wall-header-partner wall-header-left">
+      <img src="/brand/sfl-tv-white.svg" alt="SFL — Social Football League" class="wall-header-logo wall-sfl-mark">
+    </div>
+    <div class="wall-header-center" aria-label="KORA Experience">
+      <img src="/brand/kora-tv-white.svg" alt="KORA" class="wall-header-logo wall-kora-mark">
+      <span class="wall-experience">EXPERIENCE</span>
+    </div>
+    <div class="wall-header-partner wall-header-right">
+      <img src="/brand/refuel-tv-white.svg" alt="REFUEL" class="wall-header-logo wall-refuel-mark">
+    </div>
+  </header>
+
+  <section class="wall-lock" *ngIf="!connected()">
+    <div class="lock-eyebrow">KORA / EVENT DISPLAY</div>
+    <h1>THE PLAYER<br><em>WALL</em></h1>
+    <p>Show event-approved KORA player cards on your TV for one hour after upload, with automatic card flips as new cards arrive.</p>
+    <form (submit)="$event.preventDefault();connect()" class="wall-login">
+      <label for="wall-code">EVENT DISPLAY ACCESS CODE</label>
+      <input id="wall-code" type="password" [ngModel]="accessCode()" (ngModelChange)="accessCode.set($event)"
+        name="wallCode" autocomplete="off" placeholder="Enter your TV display code"
+        aria-label="Event display access code" required>
+      <button type="submit" [disabled]="loading()||!accessCode().trim()">
+        {{loading() ? 'CONNECTING…' : 'OPEN PLAYER WALL'}} <span>→</span>
+      </button>
+    </form>
+    <p class="wall-error" *ngIf="error()" role="alert">{{error()}}</p>
+    <small>This screen is for authorized event displays only. No player contact details appear here.</small>
+  </section>
+
+  <section class="wall-stage" *ngIf="connected()">
+    <div class="wall-grid" aria-label="Live 6 column by 2 row grid of KORA player cards">
+      <div *ngFor="let tile of tiles();index as i;trackBy:trackTile" class="wall-tile">
+        <div class="wall-flipper" [class.is-flipped]="tile.flipped">
+          <div class="wall-face wall-front">
+            <div class="wall-card-pair" *ngIf="tile.front as card">
+              <img class="wall-player-img" [src]="card.url" alt="KORA event player card" loading="eager">
+              <button class="wall-qr-side" type="button" (click)="showQr(card)" title="Enlarge this card's download QR code" aria-label="Enlarge card download QR code">
+                <img [src]="qrImage(card)" alt="QR code to download this player card">
+              </button>
+            </div>
+            <div class="wall-placeholder" *ngIf="!tile.front"><img [src]="i % 2 === 0 ? '/brand/kora-tv-white.svg' : '/brand/sfl-tv-white.svg'" [alt]="i % 2 === 0 ? 'KORA' : 'Social Football League'" [class.wall-placeholder-sfl]="i % 2 !== 0"></div>
+          </div>
+          <div class="wall-face wall-back">
+            <div class="wall-card-pair" *ngIf="tile.back as card">
+              <img class="wall-player-img" [src]="card.url" alt="KORA event player card" loading="eager">
+              <button class="wall-qr-side" type="button" (click)="showQr(card)" title="Enlarge this card's download QR code" aria-label="Enlarge card download QR code">
+                <img [src]="qrImage(card)" alt="QR code to download this player card">
+              </button>
+            </div>
+            <div class="wall-placeholder" *ngIf="!tile.back"><img [src]="i % 2 === 0 ? '/brand/kora-tv-white.svg' : '/brand/sfl-tv-white.svg'" [alt]="i % 2 === 0 ? 'KORA' : 'Social Football League'" [class.wall-placeholder-sfl]="i % 2 !== 0"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="wall-qr-modal" *ngIf="enlargedQr() as card" role="dialog" aria-modal="true" aria-label="Scan QR code to download player card">
+      <div class="wall-qr-modal-inner">
+        <button class="wall-qr-dismiss" type="button" (click)="closeQr()" aria-label="Close enlarged QR code">×</button>
+        <img class="wall-qr-modal-card" [src]="card.url" alt="Selected KORA player card">
+        <div class="wall-qr-modal-scan">
+          <strong>SCAN TO GET YOUR CARD</strong>
+          <img [src]="qrImage(card)" alt="Scannable QR code to download the selected player card">
+          <p>Point your phone camera here to download this player card.</p>
+          <a class="wall-qr-test-link" [href]="card.qrUrl" target="_blank" rel="noopener noreferrer">Test download link ↗</a>
+          <small>QR link valid for 7 days after the card was created.</small>
+        </div>
+      </div>
+    </div>
+    <div class="wall-bottom">
+      <div class="wall-instagram">
+        <a class="wall-instagram-qr" [href]="instagramUrl" target="_blank" rel="noopener noreferrer" aria-label="Scan or open KORA Instagram @koraballs">
+          <img [src]="instagramQr" alt="QR code for instagram.com/koraballs">
+          <span class="wall-instagram-center" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2.5" y="2.5" width="19" height="19" rx="5"></rect>
+              <circle cx="12" cy="12" r="4.2"></circle>
+              <circle cx="18" cy="6.5" r="1" fill="currentColor" stroke="none"></circle>
+            </svg>
+          </span>
+        </a>
+        <div class="wall-instagram-copy">
+          <strong>FOLLOW US ON INSTAGRAM</strong>
+          <span>@koraballs</span>
+        </div>
+      </div>
+      <span class="wall-warning" *ngIf="error()" role="status">{{error()}}</span>
+      <div class="wall-footer-controls">
+        <span class="wall-live"><i></i> LIVE</span>
+        <button class="wall-header-btn" type="button" (click)="toggleFullscreen()" title="Toggle fullscreen">⛶ FULLSCREEN</button>
+        <button class="wall-header-btn wall-exit" type="button" (click)="disconnect()" title="Lock the wall">LOCK</button>
+      </div>
+    </div>
+  </section>
+</main>

@@ -51,6 +51,7 @@ export const CardStore=signalStore(
         position:store.playerPosition(),
         shirtNumber:store.playerNumber(),
         cardCloudConsent:store.cloudConsent(),
+        eventScreenConsent:store.dataConsent()&&store.cloudConsent(),
       });
       patchState(store,{registrationSaved:true,cardLinkToken});
       return true;
