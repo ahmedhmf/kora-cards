@@ -17,8 +17,8 @@ export type Experience='home'|'card'|'filter';
 export type FilterStage='source'|'camera'|'editor';
 export type CardDesign='blue-gold'|'red-black'|'white-red'|'mono-red';
 export type RenderEngine='legacy'|'template';
-interface CardState{experience:Experience;stage:CardStage;filterStage:FilterStage;facingMode:FacingMode;filterImageUrl:string;filterProcessed:boolean;cardMediaType:'image'|'video';countdown:number;error:string;isSharing:boolean;driveAvailable:boolean;driveUploading:boolean;driveMessage:string;cloudBusy:boolean;cloudMessage:string;cloudConsent:boolean;dataConsent:boolean;registrationBusy:boolean;registrationSaved:boolean;cloudQrUrl:string;cloudQrImage:string;qrPopupOpen:boolean;cardLoading:boolean;playerName:string;playerEmail:string;instagramHandle:string;phoneNumber:string;whatsappError:string;playerPosition:string;playerNumber:number;cardDesign:CardDesign;renderEngine:RenderEngine;replayUrl:string;mediaStream:MediaStream|null;matchedPlayer:RatedPlayer}
-const initialState:CardState={experience:'card',stage:'intro',filterStage:'source',facingMode:'environment',filterImageUrl:'',filterProcessed:false,cardMediaType:'video',countdown:3,error:'',isSharing:false,driveAvailable:!GOOGLE_DRIVE_CONFIG.clientId.startsWith('PASTE_'),driveUploading:false,driveMessage:'',cloudBusy:false,cloudMessage:'',cloudConsent:false,dataConsent:false,registrationBusy:false,registrationSaved:false,cloudQrUrl:'',cloudQrImage:'',qrPopupOpen:false,cardLoading:false,playerName:'',playerEmail:'',instagramHandle:'',phoneNumber:'',whatsappError:'',playerPosition:'ST',playerNumber:10,cardDesign:'blue-gold',renderEngine:'template',replayUrl:'',mediaStream:null,matchedPlayer:randomPlayer('ST')};
+interface CardState{experience:Experience;stage:CardStage;filterStage:FilterStage;facingMode:FacingMode;filterImageUrl:string;filterProcessed:boolean;cardMediaType:'image'|'video';countdown:number;error:string;isSharing:boolean;driveAvailable:boolean;driveUploading:boolean;driveMessage:string;cloudBusy:boolean;cloudMessage:string;cloudConsent:boolean;dataConsent:boolean;registrationBusy:boolean;registrationSaved:boolean;cardLinkToken:string;cloudQrUrl:string;cloudQrImage:string;qrPopupOpen:boolean;cardLoading:boolean;playerName:string;playerEmail:string;instagramHandle:string;phoneNumber:string;whatsappError:string;playerPosition:string;playerNumber:number;cardDesign:CardDesign;renderEngine:RenderEngine;replayUrl:string;mediaStream:MediaStream|null;matchedPlayer:RatedPlayer}
+const initialState:CardState={experience:'card',stage:'intro',filterStage:'source',facingMode:'environment',filterImageUrl:'',filterProcessed:false,cardMediaType:'video',countdown:3,error:'',isSharing:false,driveAvailable:!GOOGLE_DRIVE_CONFIG.clientId.startsWith('PASTE_'),driveUploading:false,driveMessage:'',cloudBusy:false,cloudMessage:'',cloudConsent:false,dataConsent:false,registrationBusy:false,registrationSaved:false,cardLinkToken:'',cloudQrUrl:'',cloudQrImage:'',qrPopupOpen:false,cardLoading:false,playerName:'',playerEmail:'',instagramHandle:'',phoneNumber:'',whatsappError:'',playerPosition:'ST',playerNumber:10,cardDesign:'blue-gold',renderEngine:'template',replayUrl:'',mediaStream:null,matchedPlayer:randomPlayer('ST')};
 export const CardStore=signalStore(
  {providedIn:'root'},withState(initialState),
  withMethods((store,camera=inject(CameraService),renderer=inject(CardRendererService),templateRenderer=inject(TemplateCardRendererService),exporter=inject(CardExportService),filter=inject(PhotoFilterService),drive=inject(GoogleDriveService),cloud=inject(SupabaseCardStorageService),registration=inject(SupabasePlayerRegistrationService))=>{
@@ -43,7 +43,7 @@ export const CardStore=signalStore(
     if(!store.dataConsent()||store.registrationSaved())return true;
     patchState(store,{registrationBusy:true,error:''});
     try{
-      await registration.save({
+      const cardLinkToken=await registration.save({
         name:store.playerName().trim(),
         email:store.playerEmail().trim(),
         instagram:store.instagramHandle().trim(),
@@ -52,7 +52,7 @@ export const CardStore=signalStore(
         shirtNumber:store.playerNumber(),
         cardCloudConsent:store.cloudConsent(),
       });
-      patchState(store,{registrationSaved:true});
+      patchState(store,{registrationSaved:true,cardLinkToken});
       return true;
     }catch(error){
       console.error('KORA registration failed',error);
@@ -134,7 +134,7 @@ export const CardStore=signalStore(
          const file=await exporter.createImageBlob(canvas);
          if(current===flowVersion)patchState(store,{cloudBusy:true,cloudMessage:'Uploading your card…'});
          // Upload is deliberately separate from photo render completion.
-         void cloud.uploadCard(file).then(downloadUrl=>{
+         void cloud.uploadCard(file,store.dataConsent()?store.cardLinkToken():undefined).then(downloadUrl=>{
            const qrImage=qrDataUrl(downloadUrl);
            if(current===flowVersion)patchState(store,{
              cloudMessage:'Your card is ready. Tap QR in the toolbar to download.',
