@@ -77,8 +77,12 @@ export const CardStore=signalStore(
    setEmail(playerEmail:string){patchState(store,{playerEmail,registrationSaved:false})},
    setInstagramHandle(instagramHandle:string){patchState(store,{instagramHandle,registrationSaved:false})},
    setPhoneNumber(phoneNumber:string){patchState(store,{phoneNumber,whatsappError:'',registrationSaved:false})},
-   setCloudConsent(cloudConsent:boolean){patchState(store,{cloudConsent})},
-   setDataConsent(dataConsent:boolean){patchState(store,{dataConsent})},
+   // One explicit choice controls BOTH private registration and cloud card upload.
+   // Keeping the two internal flags synchronised preserves the existing
+   // registration -> private photo linkage and QR workflow.
+   setCombinedConsent(consent:boolean){
+     patchState(store,{dataConsent:consent,cloudConsent:consent,registrationSaved:false,cardLinkToken:''});
+   },
    toggleQrPopup(){if(store.cloudQrImage())patchState(store,{qrPopupOpen:!store.qrPopupOpen()})},
    closeQrPopup(){patchState(store,{qrPopupOpen:false})},
    openWhatsApp(){
