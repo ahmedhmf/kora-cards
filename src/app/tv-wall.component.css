@@ -92,3 +92,6 @@
  .wall-qr-modal-inner{grid-template-columns:1fr;overflow:auto}
  .wall-qr-modal-card{max-height:33vh}
 }
+
+.wall-qr-test-link{display:inline-block;color:#fff;text-decoration:underline;text-underline-offset:4px;font:800 clamp(13px,1.1vw,19px) "Chakra Petch",Arial,sans-serif}
+.wall-qr-test-link:hover,.wall-qr-test-link:focus-visible{color:#ff5a5a}
