@@ -201,7 +201,7 @@ export class TvWallComponent implements OnInit,OnDestroy {
     const pool=this.cards();
     if(pool.length<=this.slots)return; // All eligible cards already fit.
     const slot=this.tileCursor++%this.slots;
-    // Prefer a player not already visible in the other ${this.slots} tiles.
+    // Prefer a player not already visible in another TV tile.
     const onScreen=new Set(this.tiles().map(tile=>(
       tile.flipped?tile.back?.path:tile.front?.path
     )).filter(Boolean));
