@@ -105,12 +105,10 @@ export class TemplateCardRendererService {
   }
 
   private drawCardInformation(ctx: CanvasRenderingContext2D, data: CardData) {
-    // The downloaded PNG template itself contains an opaque light score panel,
-    // independent of the gray overlay we removed previously. Clear that region
-    // on the card canvas so the block is no longer part of the preview/export.
-    ctx.clearRect(193, 474, 155, 174);
-    // Use a high-contrast outline so the score survives on any surface behind
-    // the now-transparent panel.
+    // Draw ONLY the score and position lettering directly over the portrait.
+    // Never clear or fill a rectangle here: clearing erases the underlying
+    // camera photo and creates a black hole in the capture preview.
+    // Use a text outline for contrast without any background box.
     ctx.lineJoin = 'round';
     ctx.lineWidth = 6;
     ctx.strokeStyle = '#fff';
