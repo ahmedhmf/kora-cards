@@ -1,0 +1,9 @@
+# Customer-facing function has no Supabase user JWT.
+# It enforces origin checks, size/format validation, quota, and private server-side Storage.
+[functions.kora-card-upload]
+verify_jwt = false
+
+# Customer details are stored by the server-only registration function.
+# Consent, server validation, origin checks and quota are enforced there.
+[functions.kora-player-save]
+verify_jwt = false
