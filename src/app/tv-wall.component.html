@@ -30,7 +30,7 @@
   </section>
 
   <section class="wall-stage" *ngIf="connected()">
-    <div class="wall-grid" aria-label="Live 6 column by 3 row grid of KORA player cards">
+    <div class="wall-grid" aria-label="Live 6 column by 2 row grid of KORA player cards">
       <div *ngFor="let tile of tiles();index as i;trackBy:trackTile" class="wall-tile">
         <div class="wall-flipper" [class.is-flipped]="tile.flipped">
           <div class="wall-face wall-front">
@@ -38,7 +38,6 @@
               <img class="wall-player-img" [src]="card.url" alt="KORA event player card" loading="eager">
               <button class="wall-qr-side" type="button" (click)="showQr(card)" title="Enlarge this card's download QR code" aria-label="Enlarge card download QR code">
                 <img [src]="qrImage(card)" alt="QR code to download this player card">
-                <span>SCAN</span>
               </button>
             </div>
             <div class="wall-placeholder" *ngIf="!tile.front"><img src="/brand/kora-logo.png" alt=""><span>YOUR CARD<br>COULD BE NEXT</span></div>
@@ -48,7 +47,6 @@
               <img class="wall-player-img" [src]="card.url" alt="KORA event player card" loading="eager">
               <button class="wall-qr-side" type="button" (click)="showQr(card)" title="Enlarge this card's download QR code" aria-label="Enlarge card download QR code">
                 <img [src]="qrImage(card)" alt="QR code to download this player card">
-                <span>SCAN</span>
               </button>
             </div>
             <div class="wall-placeholder" *ngIf="!tile.back"><img src="/brand/kora-logo.png" alt=""><span>KORA<br>PLAYER WALL</span></div>
