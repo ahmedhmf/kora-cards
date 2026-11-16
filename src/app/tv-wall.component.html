@@ -1,0 +1,53 @@
+<main class="wall-shell">
+  <header class="wall-header">
+    <div class="wall-brand">
+      <img src="/brand/kora-logo.png" alt="KORA" class="wall-logo">
+      <div class="wall-brand-copy"><strong>PLAYER WALL</strong><span>EVENT EDITION • LIVE CARDS</span></div>
+    </div>
+    <div class="wall-head-right" *ngIf="connected()">
+      <div class="wall-live"><i></i> LIVE</div>
+      <span class="wall-count">{{cards().length}} CARDS</span>
+      <button class="wall-header-btn" type="button" (click)="toggleFullscreen()" title="Toggle fullscreen">⛶ FULLSCREEN</button>
+      <button class="wall-header-btn wall-exit" type="button" (click)="disconnect()" title="Lock the wall">LOCK</button>
+    </div>
+  </header>
+
+  <section class="wall-lock" *ngIf="!connected()">
+    <div class="lock-eyebrow">KORA / EVENT DISPLAY</div>
+    <h1>THE PLAYER<br><em>WALL</em></h1>
+    <p>Show every event-approved KORA player card on your TV, with automatic card flips as new cards arrive.</p>
+    <form (submit)="$event.preventDefault();connect()" class="wall-login">
+      <label for="wall-code">EVENT DISPLAY ACCESS CODE</label>
+      <input id="wall-code" type="password" [ngModel]="accessCode()" (ngModelChange)="accessCode.set($event)"
+        name="wallCode" autocomplete="off" placeholder="Enter your TV display code"
+        aria-label="Event display access code" required>
+      <button type="submit" [disabled]="loading()||!accessCode().trim()">
+        {{loading() ? 'CONNECTING…' : 'OPEN PLAYER WALL'}} <span>→</span>
+      </button>
+    </form>
+    <p class="wall-error" *ngIf="error()" role="alert">{{error()}}</p>
+    <small>This screen is for authorized event displays only. No player contact details appear here.</small>
+  </section>
+
+  <section class="wall-stage" *ngIf="connected()">
+    <div class="wall-grid" aria-label="Live 4 by 4 grid of KORA player cards">
+      <div *ngFor="let tile of tiles();index as i;trackBy:trackTile" class="wall-tile">
+        <div class="wall-flipper" [class.is-flipped]="tile.flipped">
+          <div class="wall-face wall-front">
+            <img *ngIf="tile.front" [src]="tile.front.url" alt="KORA event player card" loading="eager">
+            <div class="wall-placeholder" *ngIf="!tile.front"><img src="/brand/kora-logo.png" alt=""><span>YOUR CARD<br>COULD BE NEXT</span></div>
+          </div>
+          <div class="wall-face wall-back">
+            <img *ngIf="tile.back" [src]="tile.back.url" alt="KORA event player card" loading="eager">
+            <div class="wall-placeholder" *ngIf="!tile.back"><img src="/brand/kora-logo.png" alt=""><span>KORA<br>PLAYER WALL</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="wall-bottom">
+      <div>THE NEXT STAR IS YOU <span>✦</span> KORA CARDS</div>
+      <span class="wall-updated">SYNCED {{lastUpdated()}}</span>
+      <span class="wall-warning" *ngIf="error()" role="status">{{error()}}</span>
+    </div>
+  </section>
+</main>
