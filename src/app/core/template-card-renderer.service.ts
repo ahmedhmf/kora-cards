@@ -105,13 +105,22 @@ export class TemplateCardRendererService {
   }
 
   private drawCardInformation(ctx: CanvasRenderingContext2D, data: CardData) {
-    // Keep the player score and position, but do not paint a gray box
-    // over the KORA template behind them.
+    // The downloaded PNG template itself contains an opaque light score panel,
+    // independent of the gray overlay we removed previously. Clear that region
+    // on the card canvas so the block is no longer part of the preview/export.
+    ctx.clearRect(193, 474, 155, 174);
+    // Use a high-contrast outline so the score survives on any surface behind
+    // the now-transparent panel.
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = '#fff';
     ctx.fillStyle = '#000';
     ctx.textAlign = 'left';
     ctx.font = '900 88px "Chakra Petch", sans-serif';
+    ctx.strokeText(String(data.match.overall), 198, 568, 165);
     ctx.fillText(String(data.match.overall), 198, 568, 165);
     ctx.font = '900 51px "Chakra Petch", sans-serif';
+    ctx.strokeText(data.position, 200, 637, 150);
     ctx.fillText(data.position, 200, 637, 150);
 
     ctx.fillStyle = '#000'; ctx.fillRect(168, 862, 542, 82);
