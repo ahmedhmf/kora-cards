@@ -4,7 +4,7 @@ import {FormsModule} from '@angular/forms';
 import {SUPABASE_STORAGE_CONFIG} from '../environments/supabase-storage.config';
 import {qrDataUrl} from './core/qr-code.util';
 
-interface WallCard { path:string; url:string; }
+interface WallCard { path:string; url:string; qrUrl:string; }
 interface WallTile { front:WallCard|null; back:WallCard|null; flipped:boolean; }
 interface WallPage { cards:WallCard[]; nextOffset:number|null; error?:string; }
 
@@ -107,7 +107,7 @@ export class TvWallComponent implements OnInit,OnDestroy {
       throw new Error(body.error||`Unable to load KORA cards (HTTP ${response.status}).`);
     }
     if(!Array.isArray(body.cards))throw new Error('Unexpected TV wall response.');
-    return {cards:body.cards.filter(c=>typeof c.path==='string'&&typeof c.url==='string'),nextOffset:typeof body.nextOffset==='number'?body.nextOffset:null};
+    return {cards:body.cards.filter(c=>typeof c.path==='string'&&typeof c.url==='string'&&typeof c.qrUrl==='string'),nextOffset:typeof body.nextOffset==='number'?body.nextOffset:null};
   }
   private async populate(first:WallPage):Promise<void>{
     const collected=[...first.cards];
@@ -183,13 +183,13 @@ export class TvWallComponent implements OnInit,OnDestroy {
       return copy;
     });
   }
-  // QR is generated locally from the same short-lived private card URL.
-  // No external QR provider sees the signed URL.
+  // The QR contains a compact, seven-day token URL rather than the dense
+  // and rapidly expiring image URL. No external QR provider is involved.
   qrImage(card:WallCard):string{
-    const cached=this.qrCache.get(card.url);
+    const cached=this.qrCache.get(card.qrUrl);
     if(cached)return cached;
-    const encoded=qrDataUrl(card.url);
-    this.qrCache.set(card.url,encoded);
+    const encoded=qrDataUrl(card.qrUrl);
+    this.qrCache.set(card.qrUrl,encoded);
     return encoded;
   }
   showQr(card:WallCard):void{this.enlargedQr.set(card)}
