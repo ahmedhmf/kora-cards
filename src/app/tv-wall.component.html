@@ -34,20 +34,20 @@
       <div *ngFor="let tile of tiles();index as i;trackBy:trackTile" class="wall-tile">
         <div class="wall-flipper" [class.is-flipped]="tile.flipped">
           <div class="wall-face wall-front">
-            <div class="wall-card-pair" *ngIf="tile.front">
-              <img class="wall-player-img" [src]="tile.front.url" alt="KORA event player card" loading="eager">
-              <button class="wall-qr-side" type="button" (click)="showQr(tile.front)" title="Enlarge this card's download QR code" aria-label="Enlarge card download QR code">
-                <img [src]="qrImage(tile.front)" alt="QR code to download this player card">
+            <div class="wall-card-pair" *ngIf="tile.front as card">
+              <img class="wall-player-img" [src]="card.url" alt="KORA event player card" loading="eager">
+              <button class="wall-qr-side" type="button" (click)="showQr(card)" title="Enlarge this card's download QR code" aria-label="Enlarge card download QR code">
+                <img [src]="qrImage(card)" alt="QR code to download this player card">
                 <span>SCAN</span>
               </button>
             </div>
             <div class="wall-placeholder" *ngIf="!tile.front"><img src="/brand/kora-logo.png" alt=""><span>YOUR CARD<br>COULD BE NEXT</span></div>
           </div>
           <div class="wall-face wall-back">
-            <div class="wall-card-pair" *ngIf="tile.back">
-              <img class="wall-player-img" [src]="tile.back.url" alt="KORA event player card" loading="eager">
-              <button class="wall-qr-side" type="button" (click)="showQr(tile.back)" title="Enlarge this card's download QR code" aria-label="Enlarge card download QR code">
-                <img [src]="qrImage(tile.back)" alt="QR code to download this player card">
+            <div class="wall-card-pair" *ngIf="tile.back as card">
+              <img class="wall-player-img" [src]="card.url" alt="KORA event player card" loading="eager">
+              <button class="wall-qr-side" type="button" (click)="showQr(card)" title="Enlarge this card's download QR code" aria-label="Enlarge card download QR code">
+                <img [src]="qrImage(card)" alt="QR code to download this player card">
                 <span>SCAN</span>
               </button>
             </div>
