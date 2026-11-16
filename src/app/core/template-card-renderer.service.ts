@@ -108,17 +108,12 @@ export class TemplateCardRendererService {
     // Draw ONLY the score and position lettering directly over the portrait.
     // Never clear or fill a rectangle here: clearing erases the underlying
     // camera photo and creates a black hole in the capture preview.
-    // Use a text outline for contrast without any background box.
-    ctx.lineJoin = 'round';
-    ctx.lineWidth = 6;
-    ctx.strokeStyle = '#fff';
+    // Solid black lettering only, with no white outline or background.
     ctx.fillStyle = '#000';
     ctx.textAlign = 'left';
     ctx.font = '900 88px "Chakra Petch", sans-serif';
-    ctx.strokeText(String(data.match.overall), 198, 568, 165);
     ctx.fillText(String(data.match.overall), 198, 568, 165);
     ctx.font = '900 51px "Chakra Petch", sans-serif';
-    ctx.strokeText(data.position, 200, 637, 150);
     ctx.fillText(data.position, 200, 637, 150);
 
     ctx.fillStyle = '#000'; ctx.fillRect(168, 862, 542, 82);
