@@ -86,6 +86,7 @@ Deno.serve(async request=>{
     const position=typeof value.position==='string'?value.position:'';
     const shirtNumber=value.shirtNumber;
     const cloudConsent=value.cardCloudConsent===true;
+    const eventScreenConsent=value.eventScreenConsent===true && cloudConsent;
     if(!name||name.length>18||
        email.length>254||! /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||
        !/^[A-Za-z0-9._]{1,30}$/.test(instagram)||
@@ -112,7 +113,8 @@ Deno.serve(async request=>{
     const {error}=await admin.from('kora_player_registrations').insert({
       name,email,instagram,telephone,position,
       shirt_number:shirtNumber,card_cloud_consent:cloudConsent,
-      data_consent_version:'v1',
+      event_screen_consent:eventScreenConsent,
+      data_consent_version:eventScreenConsent?'v2-event-display':'v1',
       card_link_token_hash:cloudConsent?await hashLinkToken(linkToken):null,
     });
     if(error)throw error;
