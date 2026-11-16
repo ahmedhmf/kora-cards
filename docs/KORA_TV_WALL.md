@@ -186,3 +186,23 @@ enlarge it to scan from farther away.
 columns and no change to `kora-wall-download` are required if you deployed
 the previous short-link QR feature. Existing event-approved cards uploaded
 within the last hour are eligible; older cards no longer appear on the TV.
+
+## Scanning QR codes on a real TV
+
+Small card QRs are difficult to scan from across a room because each card
+only occupies one of twelve tiles. The TV now renders QR pixels at higher
+intrinsic resolution, expands the bottom-right card QR, and provides **SCAN CARD**
+in the footer to open a stationary, large QR for the newest eligible card.
+A player can also select the QR on any individual tile to enlarge that specific
+card's code. Use the expanded QR to scan from several steps away. If it
+scans but will not download, click **Test download link** in the expanded
+view and inspect the `kora-wall-download` Supabase function logs.
+
+The Instagram QR links to `https://www.instagram.com/koraballs/`. The footer
+QR uses high error correction and a small center icon; selecting it opens a
+large dedicated Instagram QR, with a direct profile link as backup. Scanning
+requires clear camera focus, sufficient TV brightness and a stationary code.
+Avoid browser zoom that makes the black/white modules blurry.
+
+TV changes only: **no new Supabase SQL or Edge Function deployments** for
+this scanning improvement.

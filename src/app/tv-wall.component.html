@@ -1,11 +1,11 @@
 <main class="wall-shell">
   <header class="wall-header" aria-label="Event partners">
-    <div class="wall-header-partner wall-header-left">
-      <img src="/brand/sfl-tv-white.svg" alt="SFL — Social Football League" class="wall-header-logo wall-sfl-mark">
-    </div>
-    <div class="wall-header-center" aria-label="KORA Experience">
+    <div class="wall-header-partner wall-header-left" aria-label="KORA Experience">
       <img src="/brand/kora-tv-white.svg" alt="KORA" class="wall-header-logo wall-kora-mark">
       <span class="wall-experience">EXPERIENCE</span>
+    </div>
+    <div class="wall-header-center" aria-label="Social Football League">
+      <img src="/brand/sfl-tv-white.png" alt="SFL — Social Football League" class="wall-header-logo wall-sfl-mark">
     </div>
     <div class="wall-header-partner wall-header-right">
       <img src="/brand/refuel-tv-white.svg" alt="REFUEL" class="wall-header-logo wall-refuel-mark">
@@ -67,9 +67,29 @@
         </div>
       </div>
     </div>
+    <div class="wall-qr-modal wall-instagram-modal" *ngIf="instagramPopupOpen()" role="dialog" aria-modal="true" aria-label="Scan the KORA Instagram QR code">
+      <div class="wall-instagram-modal-inner">
+        <button class="wall-qr-dismiss" type="button" (click)="closeInstagramQr()" aria-label="Close Instagram QR code">×</button>
+        <div class="wall-instagram-modal-copy">
+          <strong>FOLLOW KORA ON INSTAGRAM</strong>
+          <span>@koraballs</span>
+        </div>
+        <div class="wall-instagram-bigqr">
+          <img [src]="instagramQr" alt="Large scannable QR code for instagram.com/koraballs">
+          <span class="wall-instagram-center" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2.5" y="2.5" width="19" height="19" rx="5"></rect>
+              <circle cx="12" cy="12" r="4.2"></circle>
+              <circle cx="18" cy="6.5" r="1" fill="currentColor" stroke="none"></circle>
+            </svg>
+          </span>
+        </div>
+        <a [href]="instagramUrl" target="_blank" rel="noopener noreferrer" class="wall-qr-test-link">Open @koraballs on Instagram ↗</a>
+      </div>
+    </div>
     <div class="wall-bottom">
       <div class="wall-instagram">
-        <a class="wall-instagram-qr" [href]="instagramUrl" target="_blank" rel="noopener noreferrer" aria-label="Scan or open KORA Instagram @koraballs">
+        <button class="wall-instagram-qr" type="button" (click)="showInstagramQr()" aria-label="Enlarge Instagram QR code for @koraballs">
           <img [src]="instagramQr" alt="QR code for instagram.com/koraballs">
           <span class="wall-instagram-center" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -78,7 +98,7 @@
               <circle cx="18" cy="6.5" r="1" fill="currentColor" stroke="none"></circle>
             </svg>
           </span>
-        </a>
+        </button>
         <div class="wall-instagram-copy">
           <strong>FOLLOW US ON INSTAGRAM</strong>
           <span>@koraballs</span>
@@ -87,6 +107,7 @@
       <span class="wall-warning" *ngIf="error()" role="status">{{error()}}</span>
       <div class="wall-footer-controls">
         <span class="wall-live"><i></i> LIVE</span>
+        <button class="wall-header-btn" type="button" (click)="showNewestCardQr()" [disabled]="cards().length===0" title="Show a large QR for the newest card">⛶ SCAN CARD</button>
         <button class="wall-header-btn" type="button" (click)="toggleFullscreen()" title="Toggle fullscreen">⛶ FULLSCREEN</button>
         <button class="wall-header-btn wall-exit" type="button" (click)="disconnect()" title="Lock the wall">LOCK</button>
       </div>

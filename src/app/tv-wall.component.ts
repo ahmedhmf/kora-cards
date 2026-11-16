@@ -27,7 +27,8 @@ export class TvWallComponent implements OnInit,OnDestroy {
   readonly tiles=signal<WallTile[]>(Array.from({length:12},()=>({front:null,back:null,flipped:false})));
   readonly lastUpdated=signal('');
   readonly instagramUrl='https://www.instagram.com/koraballs/';
-  readonly instagramQr=qrDataUrl(this.instagramUrl);
+  readonly instagramQr=qrDataUrl(this.instagramUrl,'H');
+  readonly instagramPopupOpen=signal(false);
   readonly fullScreen=signal(false);
   readonly enlargedQr=signal<WallCard|null>(null);
   private readonly qrCache=new Map<string,string>();
@@ -78,6 +79,7 @@ export class TvWallComponent implements OnInit,OnDestroy {
     this.cards.set([]);
     this.qrCache.clear();
     this.enlargedQr.set(null);
+    this.instagramPopupOpen.set(false);
     this.tiles.set(Array.from({length:this.slots},()=>({front:null,back:null,flipped:false})));
     this.error.set('');
     this.accessCode.set('');
@@ -229,8 +231,14 @@ export class TvWallComponent implements OnInit,OnDestroy {
     this.qrCache.set(card.qrUrl,encoded);
     return encoded;
   }
-  showQr(card:WallCard):void{this.enlargedQr.set(card)}
+  showQr(card:WallCard):void{this.instagramPopupOpen.set(false);this.enlargedQr.set(card)}
   closeQr():void{this.enlargedQr.set(null)}
+  showInstagramQr():void{this.enlargedQr.set(null);this.instagramPopupOpen.set(true)}
+  closeInstagramQr():void{this.instagramPopupOpen.set(false)}
+  showNewestCardQr():void{
+    const first=this.cards().find(card=>this.isFresh(card));
+    if(first)this.showQr(first);
+  }
   async toggleFullscreen():Promise<void>{
     try{
       if(document.fullscreenElement)await document.exitFullscreen();

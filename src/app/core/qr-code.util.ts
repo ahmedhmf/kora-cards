@@ -1272,12 +1272,15 @@ function loadQR(name:string):any {
   return cache[name].exports;
 }
 /** Render a QR code entirely on the KORA device. No URL leaves this browser. */
-export function qrDataUrl(value:string):string {
+export function qrDataUrl(value:string,correction:'M'|'H'='M'):string {
   const QRCode=loadQR('./index');
-  const qr=new QRCode(0,loadQR('./QRErrorCorrectLevel').M);
+  const errorLevels=loadQR('./QRErrorCorrectLevel');
+  const qr=new QRCode(0,correction==='H'?errorLevels.H:errorLevels.M);
   qr.addData(value);
   qr.make();
-  const count=qr.getModuleCount(),margin=4,unit=4;
+  // Render at high intrinsic resolution. The CSS must still display each
+  // module large enough for phone cameras on physical TV screens.
+  const count=qr.getModuleCount(),margin=4,unit=10;
   const canvas=document.createElement('canvas');
   canvas.width=canvas.height=(count+margin*2)*unit;
   const ctx=canvas.getContext('2d');
