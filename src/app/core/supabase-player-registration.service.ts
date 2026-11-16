@@ -9,6 +9,7 @@ export interface KoraPlayerRegistration {
   position:string;
   shirtNumber:number;
   cardCloudConsent:boolean;
+  eventScreenConsent:boolean;
 }
 
 /** Sends consented player details to a private, server-managed Supabase table. */
