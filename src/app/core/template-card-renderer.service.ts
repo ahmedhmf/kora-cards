@@ -136,32 +136,37 @@ export class TemplateCardRendererService {
     }
   }
 
+  /**
+   * Show the unprocessed camera image inside the inner portrait borders of
+   * the real KORA card template. No AI, color key, or background removal.
+   * This is a framing guide only; ORMBG runs on the full captured photo.
+   */
   private drawLiveCardFrame(canvas: HTMLCanvasElement, video: HTMLVideoElement, data: CardData) {
     const ctx = canvas.getContext('2d')!;
     ctx.clearRect(0, 0, this.width, this.height);
     ctx.drawImage(this.template, 0, 0, this.width, this.height);
     const sw = video.videoWidth, sh = video.videoHeight;
     if (sw && sh) {
-      // Use the SAME portrait window as final compose (including the area
-      // above the inner white border). Fill it like a live photo-booth frame,
-      // rather than shrinking the entire camera feed into the lower panel.
-      // ORMBG still runs only after capture, so silhouette-specific sizing
-      // cannot be identical without live subject detection.
-      const slot = {x:165,y:250,width:546,height:611};
-      // CSS object-fit:cover equivalent; preserve aspect ratio and crop excess.
+      // The live view sits *inside* the white inner portrait border.
+      // Preserve the template border above, below and along both sides.
+      const slot = {x: 178, y: 353, width: 520, height: 501};
       const scale = Math.max(slot.width / sw, slot.height / sh);
       const w = sw * scale, h = sh * scale;
       const x = slot.x + (slot.width - w) / 2;
       const y = slot.y + (slot.height - h) / 2;
       ctx.save();
-      ctx.beginPath();ctx.rect(slot.x,slot.y,slot.width,slot.height);ctx.clip();
+      ctx.beginPath();
+      ctx.rect(slot.x, slot.y, slot.width, slot.height);
+      ctx.clip();
       if (data.facingMode === 'user') {
-        ctx.translate(2*x+w,0);ctx.scale(-1,1);
+        ctx.translate(2 * x + w, 0);
+        ctx.scale(-1, 1);
       }
-      ctx.drawImage(video,x,y,w,h);
+      ctx.drawImage(video, x, y, w, h);
       ctx.restore();
     }
-    this.drawCardInformation(ctx,data);
+    // Place the same player name, number and stats on top of the preview.
+    this.drawCardInformation(ctx, data);
   }
 
   async start(video: HTMLVideoElement, canvas: HTMLCanvasElement, getData: () => CardData) {
@@ -169,13 +174,7 @@ export class TemplateCardRendererService {
     throw new Error('KORA photo cards support still images only.');
   }
 
-  /**
-   * Adaptive dark-backdrop chroma/luma key for the LIVE PREVIEW only.
-   * Camera auto-exposure makes black cloth look gray; derive the brightness
-   * threshold from the outer camera edges rather than assuming RGB < 70.
-   * Grow transparency from the edges to avoid punching holes in dark clothes.
-   * Final still photos always use ORMBG and are unaffected.
-   */
+  /** Lightweight native camera preview, drawn into the card 10 times/sec. */
   async startLivePreview(video: HTMLVideoElement, canvas: HTMLCanvasElement, getData: () => CardData) {
     this.stop();
     const generation = this.generation;
@@ -183,126 +182,12 @@ export class TemplateCardRendererService {
     if (generation !== this.generation) return;
     canvas.width = this.width;
     canvas.height = this.height;
-
-    const sample = document.createElement('canvas');
-    const sampleWidth = 256;
-    let sampleCtx: CanvasRenderingContext2D | null = null;
-    let lastPaint = 0;
-
+    let lastFrame = 0;
     const tick = (time: number) => {
       if (generation !== this.generation) return;
-      if (video.readyState >= 2 && time - lastPaint >= 130) {
-        lastPaint = time;
-        const data = getData();
-        const sw = video.videoWidth, sh = video.videoHeight;
-        if (sw && sh) {
-          const w = sampleWidth, h = Math.max(1, Math.round(sh * w / sw));
-          if (sample.width !== w || sample.height !== h) {
-            sample.width = w;
-            sample.height = h;
-            sampleCtx = sample.getContext('2d', { willReadFrequently: true });
-          }
-          if (sampleCtx) {
-            const ctx = sampleCtx;
-            ctx.save();
-            if (data.facingMode === 'user') {
-              ctx.translate(w, 0);
-              ctx.scale(-1, 1);
-            }
-            ctx.drawImage(video, 0, 0, w, h);
-            ctx.restore();
-            const pixels = ctx.getImageData(0, 0, w, h);
-            const rgba = pixels.data;
-            const lum = (i: number) =>
-              (rgba[i] * 54 + rgba[i + 1] * 183 + rgba[i + 2] * 19) / 256;
-            const chroma = (i: number) =>
-              Math.max(rgba[i], rgba[i + 1], rgba[i + 2]) -
-              Math.min(rgba[i], rgba[i + 1], rgba[i + 2]);
-
-            // Sample edge strips, ignoring the central area where the player
-            // is most likely positioned. This tolerates non-pitch-black cloth.
-            const edgeLumas: number[] = [];
-            let neutralCount = 0;
-            for (let y = 2; y < h - 2; y += 5) {
-              for (let x = 2; x < w - 2; x += 5) {
-                if (x >= w * .14 && x <= w * .86 &&
-                    y >= h * .09 && y <= h * .91) continue;
-                const i = (y * w + x) * 4;
-                edgeLumas.push(lum(i));
-                if (chroma(i) < 48) neutralCount++;
-              }
-            }
-            edgeLumas.sort((a, b) => a - b);
-            const median = edgeLumas[Math.floor(edgeLumas.length / 2)] ?? 255;
-            // Black cloth can be gray under automatic exposure; if the edges
-            // are bright or multicolored, do not alter the camera feed.
-            const qualifies = median < 155 &&
-              neutralCount >= edgeLumas.length * .5;
-            if (qualifies) {
-              const threshold = Math.min(185, Math.max(72, median + 43));
-              const eligible = (pixel: number): boolean => {
-                const i = pixel * 4;
-                return lum(i) < threshold && chroma(i) < 68;
-              };
-              const visited = new Uint8Array(w * h);
-              const queue = new Int32Array(w * h);
-              let head = 0, tail = 0;
-              const enqueue = (index: number) => {
-                if (visited[index]) return;
-                visited[index] = 1;
-                if (eligible(index)) queue[tail++] = index;
-              };
-              // Seed all outer-edge dark pixels. This removes backdrop only
-              // where a contiguous path leads to the image boundary.
-              for (let x = 0; x < w; x++) {
-                enqueue(x);
-                enqueue((h - 1) * w + x);
-              }
-              for (let y = 0; y < h; y++) {
-                enqueue(y * w);
-                enqueue(y * w + w - 1);
-              }
-              while (head < tail) {
-                const index = queue[head++];
-                const i = index * 4;
-                rgba[i + 3] = 0;
-                const x = index % w, y = (index / w) | 0;
-                if (x > 0) enqueue(index - 1);
-                if (x + 1 < w) enqueue(index + 1);
-                if (y > 0) enqueue(index - w);
-                if (y + 1 < h) enqueue(index + w);
-              }
-              // Only use the keyed image when it removed a meaningful amount
-              // of backdrop without wiping out nearly the whole picture.
-              const removedRatio = tail / (w * h);
-              if (removedRatio > .08 && removedRatio < .90) {
-                const mask = rgba.slice();
-                for (let index = 0; index < visited.length; index++) {
-                  if (mask[index * 4 + 3] === 0) continue;
-                  const x = index % w, y = (index / w) | 0;
-                  if ((x > 0 && mask[(index - 1) * 4 + 3] === 0) ||
-                      (x + 1 < w && mask[(index + 1) * 4 + 3] === 0) ||
-                      (y > 0 && mask[(index - w) * 4 + 3] === 0) ||
-                      (y + 1 < h && mask[(index + w) * 4 + 3] === 0)) {
-                    rgba[index * 4 + 3] = 170;
-                  }
-                }
-                ctx.putImageData(pixels, 0, 0);
-                try {
-                  this.compose(canvas, sample, data);
-                } catch {
-                  this.drawLiveCardFrame(canvas, video, data);
-                }
-              } else {
-                this.drawLiveCardFrame(canvas, video, data);
-              }
-            } else {
-              this.drawLiveCardFrame(canvas, video, data);
-            }
-          } else {
-            this.drawLiveCardFrame(canvas, video, data);
-          }
-        }
+      if (video.readyState >= 2 && time - lastFrame >= 100) {
+        lastFrame = time;
+        this.drawLiveCardFrame(canvas, video, getData());
       }
       this.frameId = requestAnimationFrame(tick);
     };
