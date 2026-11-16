@@ -14,8 +14,6 @@
 
   <section class="intro" *ngIf="store.experience()==='card'&&store.stage()==='intro'">
     <div class="eyebrow"><i></i> YOUR MOMENT. YOUR CARD.</div>
-    <p class="intro-copy">Stand in front of a clear backdrop, away from chairs and other objects. Take a photo and KORA automatically creates your card.</p>
-    <p class="privacy">KORA PLAYER CARD · PHOTO EDITION · Automatic ORMBG background removal</p>
     <div class="player-fields">
       <label class="player-field-full">NAME
         <input [ngModel]="store.playerName()" (ngModelChange)="store.setName($event)"
@@ -67,7 +65,6 @@
     </div>
     <button class="primary" (click)="store.openCamera()"><span class="camera-icon">●</span> OPEN CAMERA <b>→</b></button>
     <label class="upload-button" style="display:block;text-align:center;padding:12px;border:1px solid #ed1c24">OR UPLOAD PHOTO<input type="file" accept="image/*" (change)="store.selectCardPhoto($event)" style="display:none"></label>
-    <p class="privacy">Your photo is processed on this device.</p>
     <div class="error" *ngIf="store.error()">{{store.error()}}</div>
   </section>
 
@@ -78,7 +75,6 @@
         <canvas #liveCameraCanvas [class.template-live-card]="store.renderEngine()==='template'" class="live-card-canvas" width="1080" height="1920" aria-label="Live Card Preview"></canvas>
         <div class="count" *ngIf="store.stage()==='countdown'"><strong>{{store.countdown()}}</strong><span>GET READY</span></div>
         <div class="recording" *ngIf="store.stage()==='recording'"><i></i> CELEBRATE!</div>
-        <div *ngIf="store.renderEngine()==='template'" class="preview-hint">FRAME YOUR PHOTO INSIDE THE CARD · AI APPLIED AFTER CAPTURE</div>
       </div>
 
       <div class="iphone-shutter-bar" *ngIf="store.stage()==='camera'">
@@ -157,9 +153,6 @@
 
     <div class="cloud-upload-status" *ngIf="store.cloudMessage()" role="status" aria-live="polite">
       {{store.cloudMessage()}}
-    </div>
-    <div class="whatsapp-help" *ngIf="store.cardMediaType()==='image'">
-      WhatsApp opens a prefilled message to your number. Save the card first to attach the photo manually.
     </div>
     <div class="whatsapp-error" *ngIf="store.whatsappError()" role="alert">{{store.whatsappError()}}</div>
     <div class="error" *ngIf="store.error()">{{store.error()}}</div>
