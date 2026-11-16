@@ -17,8 +17,24 @@
     <p class="intro-copy">Stand in front of a clear backdrop, away from chairs and other objects. Take a photo and KORA automatically creates your card.</p>
     <p class="privacy">KORA PLAYER CARD · PHOTO EDITION · Automatic ORMBG background removal</p>
     <div class="player-fields">
-      <label>PLAYER NAME<input [ngModel]="store.playerName()" (ngModelChange)="store.setName($event)" maxlength="18" placeholder="e.g. Cristiano"></label>
-      <label>INSTAGRAM<input [ngModel]="store.instagramHandle()" (ngModelChange)="store.setInstagramHandle($event)" maxlength="24" placeholder="@username"></label>
+      <label class="player-field-full">NAME
+        <input [ngModel]="store.playerName()" (ngModelChange)="store.setName($event)"
+          maxlength="18" autocomplete="name" placeholder="Your name" required>
+      </label>
+      <label class="player-field-full">EMAIL
+        <input [ngModel]="store.playerEmail()" (ngModelChange)="store.setEmail($event)"
+          type="email" inputmode="email" autocomplete="email" maxlength="254"
+          placeholder="you@example.com" required>
+      </label>
+      <label class="player-field-full">INSTAGRAM
+        <input [ngModel]="store.instagramHandle()" (ngModelChange)="store.setInstagramHandle($event)"
+          maxlength="30" autocomplete="off" placeholder="@username" required>
+      </label>
+      <label class="player-field-full">TELEPHONE NUMBER
+        <input [ngModel]="store.phoneNumber()" (ngModelChange)="store.setPhoneNumber($event)"
+          type="tel" inputmode="tel" autocomplete="tel" maxlength="24"
+          placeholder="+49 151 12345678" aria-label="Telephone number with country code" required>
+      </label>
       <label>POSITION
         <select [ngModel]="store.playerPosition()" (ngModelChange)="store.setPosition($event)" aria-label="Player position">
           <option value="GK">GK — Goalkeeper</option>
@@ -38,15 +54,15 @@
           <option value="ST">ST — Striker</option>
         </select>
       </label>
-      <label>SHIRT NUMBER<input [ngModel]="store.playerNumber()" (ngModelChange)="store.setNumber($event)" type="number" min="0" max="99" placeholder="10"></label>
-      <label class="cloud-consent-label">
-        <input type="checkbox" [checked]="store.cloudConsent()" (change)="store.setCloudConsent($any($event.target).checked)">
-        I agree to my finished KORA card being saved in KORA's private cloud storage.
+      <label>T-SHIRT NUMBER
+        <input [ngModel]="store.playerNumber()" (ngModelChange)="store.setNumber($event)"
+          type="number" inputmode="numeric" min="0" max="99" placeholder="10" required>
       </label>
-      <label class="whatsapp-phone-field">WHATSAPP NUMBER (OPTIONAL)
-        <input [ngModel]="store.phoneNumber()" (ngModelChange)="store.setPhoneNumber($event)"
-          type="tel" inputmode="tel" autocomplete="off" maxlength="24"
-          placeholder="+49 151 12345678" aria-label="WhatsApp recipient phone number with country code">
+      <label class="cloud-consent-label">
+        <span>I agree to my finished KORA card being saved in KORA's private cloud storage.</span>
+        <input type="checkbox" [checked]="store.cloudConsent()"
+          (change)="store.setCloudConsent($any($event.target).checked)"
+          aria-label="Agree to store my finished KORA card in private cloud storage">
       </label>
     </div>
     <button class="primary" (click)="store.openCamera()"><span class="camera-icon">●</span> OPEN CAMERA <b>→</b></button>
