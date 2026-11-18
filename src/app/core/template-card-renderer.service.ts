@@ -106,7 +106,18 @@ export class TemplateCardRendererService {
     this.drawCardInformation(ctx, data, false);
   }
 
+  private clearTemplateStatistics(ctx: CanvasRenderingContext2D) {
+    // The supplied artwork can already contain sample PAC/SHO/PAS/DRI/DEF/PHY
+    // labels and numbers. Clear only the flat-red stats field so these samples
+    // never overlap the player's real, dynamically selected ratings.
+    // The original template's flat field is RGB(255, 0, 6). Keep the clear area
+    // inside its borders and above the football artwork.
+    ctx.fillStyle = '#ff0006';
+    ctx.fillRect(186, 962, 509, 195);
+  }
+
   private drawCardInformation(ctx: CanvasRenderingContext2D, data: CardData, showPreviewScore = true) {
+    this.clearTemplateStatistics(ctx);
     // Additional score/position lettering is a camera framing guide ONLY.
     // Never draw a background box or duplicate it in the final exported card.
     if (showPreviewScore) {
