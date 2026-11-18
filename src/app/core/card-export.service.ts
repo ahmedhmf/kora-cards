@@ -48,12 +48,22 @@ export class CardExportService {
   button{font:600 16px system-ui,sans-serif;padding:12px 28px;cursor:pointer}
   .page{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 70px)}
   img{display:block;max-width:90vw;max-height:calc(100vh - 90px);width:auto;height:auto;object-fit:contain}
-  @page{size:auto;margin:10mm}
+  /* Print to the entire available sheet, without browser-added margins.
+     Never distort or crop the 877x1558 portrait card to match paper ratios. */
+  @page{size:auto;margin:0}
   @media print{
-    .toolbar{display:none}
-    html,body{margin:0;background:#fff}
-    .page{height:calc(100vh - 20mm);min-height:0;page-break-after:avoid}
-    img{max-width:100%;max-height:100%;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+    html,body{margin:0;padding:0;width:100%;height:100%;background:#fff;overflow:hidden}
+    .toolbar{display:none!important}
+    .page{
+      position:fixed;inset:0;width:100%;height:100%;min-height:0;
+      display:flex;align-items:center;justify-content:center;
+      margin:0;padding:0;break-inside:avoid;page-break-inside:avoid;
+    }
+    img{
+      display:block;width:100%;height:100%;
+      max-width:none;max-height:none;object-fit:contain;
+      print-color-adjust:exact;-webkit-print-color-adjust:exact;
+    }
   }
 </style></head>
 <body><div class="toolbar"><button id="print-button" type="button">Print card</button></div>
