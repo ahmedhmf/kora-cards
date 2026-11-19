@@ -77,11 +77,10 @@ public PWA. The existing seven-day guest QR download behavior is unchanged.
 1. Run the updated `supabase/kora-player-registration.sql` in **Supabase SQL
    Editor**. It adds `event_screen_consent boolean not null default false`
    safely to an existing table without exposing historical cards.
-2. Set a **random** 24+ character TV access code using Supabase secrets.
-   Example below uses a placeholder; replace it with your own random value:
+2. Set the TV access code with Supabase secrets. The server accepts **at least 8 characters**, although a longer random secret (ideally 16+ characters) is strongly recommended for a publicly reachable event wall. Example below uses a placeholder; replace it with your own private value:
    ```powershell
    npx supabase link --project-ref lijrppvvwomrvoxtrcaj
-   npx supabase secrets set "KORA_WALL_ACCESS_KEY=REPLACE_WITH_RANDOM_LONG_EVENT_CODE"
+   npx supabase secrets set "KORA_WALL_ACCESS_KEY=YOUR_PRIVATE_ACCESS_CODE"
    ```
 3. Confirm `KORA_ALLOWED_ORIGINS` includes your actual Vercel site origin
    `https://kora-cards.vercel.app` and (for development) `http://localhost:4200`.
@@ -206,3 +205,22 @@ Avoid browser zoom that makes the black/white modules blurry.
 
 TV changes only: **no new Supabase SQL or Edge Function deployments** for
 this scanning improvement.
+
+## Changing the TV wall passcode
+
+`kora-wall-feed` now accepts `KORA_WALL_ACCESS_KEY` values with **8 or more
+characters**. This is a reduced minimum, not a recommendation to use a weak
+password. A random longer value is safer because this access code authorizes
+viewing consented player cards on the public event display.
+
+Set the secret under **Supabase → Edge Functions → Secrets** (never in GitHub or
+public Vercel variables), then redeploy the updated function:
+
+```powershell
+npx supabase link --project-ref lijrppvvwomrvoxtrcaj
+npx supabase functions deploy kora-wall-feed --no-verify-jwt
+```
+
+A GitHub merge or Vercel deployment by itself **does not** update the deployed
+Supabase Edge Function. After deployment, lock the TV wall and enter the new
+code. Changing the secret invalidates the old code on the next feed request.
