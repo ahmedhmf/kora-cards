@@ -44,7 +44,7 @@ Deno.serve(async request=>{
   if(request.method==='OPTIONS')return responseJson(200,{ok:true},origin);
   if(request.method!=='GET')return responseJson(405,{error:'Method not allowed'},origin);
   const secret=serviceKey();
-  if(!projectUrl||!secret||accessKey.length<16){
+  if(!projectUrl||!secret||accessKey.length<8){
     return responseJson(503,{error:'KORA TV wall is not configured'},origin);
   }
   if(!sameSecret(request.headers.get('x-kora-wall-key')||'',accessKey)){
