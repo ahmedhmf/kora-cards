@@ -4,9 +4,11 @@ import {FormsModule} from '@angular/forms';
 import {SUPABASE_STORAGE_CONFIG} from '../environments/supabase-storage.config';
 import {qrDataUrl} from './core/qr-code.util';
 
-interface WallCard { path:string; url:string; qrUrl:string; uploadedAt:string; }
-interface WallTile { front:WallCard|null; back:WallCard|null; flipped:boolean; }
-interface WallPage { cards:WallCard[]; nextOffset:number|null; error?:string; }
+interface WallCard { kind:'card'; path:string; url:string; qrUrl:string; uploadedAt:string; }
+interface WallVideo { kind:'video'; path:string; url:string; uploadedAt:string; }
+type WallMedia=WallCard|WallVideo;
+interface WallTile { front:WallMedia|null; back:WallMedia|null; flipped:boolean; }
+interface WallPage { cards:WallCard[]; videos:WallVideo[]; nextOffset:number|null; error?:string; }
 
 @Component({
   selector:'app-root',
@@ -19,11 +21,12 @@ interface WallPage { cards:WallCard[]; nextOffset:number|null; error?:string; }
 export class TvWallComponent implements OnInit,OnDestroy {
   private readonly slots=12;
   private readonly displayMs=60*60*1000;
+  private readonly minVideoSlotMs=15000;
   readonly accessCode=signal('');
   readonly connected=signal(false);
   readonly loading=signal(false);
   readonly error=signal('');
-  readonly cards=signal<WallCard[]>([]);
+  readonly cards=signal<WallMedia[]>([]);
   readonly tiles=signal<WallTile[]>(Array.from({length:12},()=>({front:null,back:null,flipped:false})));
   readonly lastUpdated=signal('');
   readonly instagramUrl='https://www.instagram.com/koraballs/';
@@ -37,6 +40,7 @@ export class TvWallComponent implements OnInit,OnDestroy {
   private expiryTimer?:ReturnType<typeof setInterval>;
   private tileCursor=0;
   private cardCursor=0;
+  private readonly tileShownAt=Array.from({length:12},()=>0);
   private refreshing=false;
   private lastFullLoad=0;
   private aborted=false;
@@ -85,6 +89,7 @@ export class TvWallComponent implements OnInit,OnDestroy {
     this.accessCode.set('');
     this.cardCursor=0;
     this.tileCursor=0;
+    this.tileShownAt.fill(0);
     this.lastFullLoad=0;
     sessionStorage.removeItem('kora-wall-session-code');
   }
@@ -116,26 +121,31 @@ export class TvWallComponent implements OnInit,OnDestroy {
       throw new Error(body.error||`Unable to load KORA cards (HTTP ${response.status}).`);
     }
     if(!Array.isArray(body.cards))throw new Error('Unexpected TV wall response.');
-    return {cards:body.cards.filter(c=>typeof c.path==='string'&&typeof c.url==='string'&&typeof c.qrUrl==='string'&&typeof c.uploadedAt==='string'),nextOffset:typeof body.nextOffset==='number'?body.nextOffset:null};
+    const cards=body.cards.filter(c=>typeof c.path==='string'&&typeof c.url==='string'&&typeof c.qrUrl==='string'&&typeof c.uploadedAt==='string')
+      .map(c=>({...c,kind:'card' as const}));
+    const videos=Array.isArray(body.videos)?body.videos.filter(v=>
+      typeof v.path==='string'&&typeof v.url==='string'&&typeof v.uploadedAt==='string')
+      .map(v=>({kind:'video' as const,path:v.path,url:v.url,uploadedAt:v.uploadedAt})):[];
+    return {cards,videos,nextOffset:typeof body.nextOffset==='number'?body.nextOffset:null};
   }
   private async populate(first:WallPage):Promise<void>{
-    const collected=[...first.cards];
+    const collected:WallMedia[]=[...first.cards,...first.videos];
     let offset=first.nextOffset;
     // Read pages of 80 until all available cards are loaded.
     // A safety limit prevents a misconfigured server from looping indefinitely.
     for(let page=0;offset!==null&&page<60&&!this.aborted;page++){
       const next=await this.fetchPage(offset);
-      collected.push(...next.cards);
+      collected.push(...next.cards,...next.videos);
       if(next.nextOffset===offset)break;
       offset=next.nextOffset;
     }
     if(this.aborted||!this.connected())return;
-    const known=new Map<string,WallCard>();
-    for(const card of collected)known.set(card.path,card);
+    const known=new Map<string,WallMedia>();
+    for(const media of collected)known.set(media.kind+':'+media.path,media);
     this.lastFullLoad=Date.now();
-    this.applyCards([...known.values()]);
+    this.applyCards([...known.values()].sort((a,b)=>Date.parse(b.uploadedAt)-Date.parse(a.uploadedAt)));
   }
-  private isFresh(card:WallCard,now=Date.now()):boolean{
+  private isFresh(card:WallMedia,now=Date.now()):boolean{
     const uploaded=Date.parse(card.uploadedAt);
     return Number.isFinite(uploaded)&&uploaded<=now&&now-uploaded<this.displayMs;
   }
@@ -150,19 +160,19 @@ export class TvWallComponent implements OnInit,OnDestroy {
     const enlarged=this.enlargedQr();
     if(enlarged&&!this.isFresh(enlarged,now))this.closeQr();
   }
-  private applyCards(items:WallCard[]):void{
+  private applyCards(items:WallMedia[]):void{
     const now=Date.now();
     const eligible=items.filter(card=>this.isFresh(card,now));
     const previous=this.cards();
-    const priorPaths=previous.map(card=>card.path);
+    const priorPaths=previous.map(card=>card.kind+':'+card.path);
     const changed=priorPaths.length!==eligible.length||
-      priorPaths.some((path,i)=>path!==eligible[i].path);
+      priorPaths.some((path,i)=>path!==eligible[i].kind+':'+eligible[i].path);
     this.cards.set(eligible);
     this.qrCache.clear();
     const zoomed=this.enlargedQr();
-    if(zoomed)this.enlargedQr.set(eligible.find(item=>item.path===zoomed.path)??null);
+    if(zoomed)this.enlargedQr.set((eligible.find(item=>item.kind==='card'&&item.path===zoomed.path) as WallCard|undefined)??null);
     this.lastUpdated.set(new Date().toLocaleTimeString());
-    const known=new Map(eligible.map(item=>[item.path,item]));
+    const known=new Map(eligible.map(item=>[item.kind+':'+item.path,item]));
     if(changed){
       // Refill empty/expired slots promptly; nothing older than an hour
       // remains on either side of a flipping tile.
@@ -170,13 +180,14 @@ export class TvWallComponent implements OnInit,OnDestroy {
         front:eligible[i]??null,back:null,flipped:false,
       })));
       this.cardCursor=Math.min(this.slots,eligible.length);
+      this.tileShownAt.fill(Date.now());
       this.tileCursor=0;
     }else{
       // Refresh signed image URLs without interrupting animations.
       this.tiles.update(tiles=>tiles.map(tile=>({
         ...tile,
-        front:tile.front?known.get(tile.front.path)??null:null,
-        back:tile.back?known.get(tile.back.path)??null:null,
+        front:tile.front?known.get(tile.front.kind+':'+tile.front.path)??null:null,
+        back:tile.back?known.get(tile.back.kind+':'+tile.back.path)??null:null,
       })));
     }
   }
@@ -192,8 +203,10 @@ export class TvWallComponent implements OnInit,OnDestroy {
       }else{
         // Poll only the newest page every 30 seconds, avoiding a large
         // re-download of hundreds of signed images on each poll.
-        const freshPaths=new Set(result.cards.map(card=>card.path));
-        this.applyCards([...result.cards,...this.cards().filter(card=>!freshPaths.has(card.path))]);
+        const newest:WallMedia[]=[...result.cards,...result.videos];
+        const freshPaths=new Set(newest.map(media=>media.kind+':'+media.path));
+        this.applyCards([...newest,...this.cards().filter(media=>!freshPaths.has(media.kind+':'+media.path))]
+          .sort((a,b)=>Date.parse(b.uploadedAt)-Date.parse(a.uploadedAt)));
       }
       this.error.set('');
     }catch(err){
@@ -204,7 +217,16 @@ export class TvWallComponent implements OnInit,OnDestroy {
     this.expireCards();
     const pool=this.cards();
     if(pool.length<=this.slots)return; // All eligible cards already fit.
-    const slot=this.tileCursor++%this.slots;
+    const now=Date.now();
+    let slot=-1;
+    for(let i=0;i<this.slots;i++){
+      const candidate=this.tileCursor++%this.slots;
+      const tile=this.tiles()[candidate];
+      const visible=tile.flipped?tile.back:tile.front;
+      if(visible?.kind==='video'&&now-this.tileShownAt[candidate]<this.minVideoSlotMs)continue;
+      slot=candidate;break;
+    }
+    if(slot<0)return;
     // Prefer a player not already visible in another TV tile.
     const onScreen=new Set(this.tiles().map(tile=>(
       tile.flipped?tile.back?.path:tile.front?.path
@@ -213,6 +235,7 @@ export class TvWallComponent implements OnInit,OnDestroy {
     for(let i=0;i<pool.length&&onScreen.has(card.path);i++){
       card=pool[this.cardCursor++%pool.length];
     }
+    this.tileShownAt[slot]=now;
     this.tiles.update(tiles=>{
       const copy=[...tiles];
       const old=copy[slot];
@@ -236,7 +259,7 @@ export class TvWallComponent implements OnInit,OnDestroy {
   showInstagramQr():void{this.enlargedQr.set(null);this.instagramPopupOpen.set(true)}
   closeInstagramQr():void{this.instagramPopupOpen.set(false)}
   showNewestCardQr():void{
-    const first=this.cards().find(card=>this.isFresh(card));
+    const first=this.cards().find((media):media is WallCard=>media.kind==='card'&&this.isFresh(media));
     if(first)this.showQr(first);
   }
   async toggleFullscreen():Promise<void>{
