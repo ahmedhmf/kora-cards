@@ -104,7 +104,7 @@ export class TemplateCardRendererService {
 
     // The exported template already contains its own score/position artwork.
     // Don't draw these a second time on the completed photo.
-    this.drawCardInformation(ctx, data, false);
+    this.drawCardInformation(ctx, data);
   }
 
   private clearTemplateStatistics(ctx: CanvasRenderingContext2D) {
