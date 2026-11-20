@@ -3,6 +3,7 @@ import {ChangeDetectionStrategy,Component,OnDestroy,OnInit,signal} from '@angula
 import {FormsModule} from '@angular/forms';
 import {SUPABASE_STORAGE_CONFIG} from '../environments/supabase-storage.config';
 import {qrDataUrl} from './core/qr-code.util';
+import {WallVisibleVideoDirective} from './core/wall-visible-video.directive';
 
 interface WallCard { kind:'card'; path:string; url:string; qrUrl:string; uploadedAt:string; }
 interface WallVideo { kind:'video'; path:string; url:string; uploadedAt:string; }
@@ -13,7 +14,7 @@ interface WallPage { cards:WallCard[]; videos:WallVideo[]; nextOffset:number|nul
 @Component({
   selector:'app-root',
   standalone:true,
-  imports:[CommonModule,FormsModule],
+  imports:[CommonModule,FormsModule,WallVisibleVideoDirective],
   templateUrl:'./tv-wall.component.html',
   styleUrl:'./tv-wall.component.css',
   changeDetection:ChangeDetectionStrategy.OnPush,
