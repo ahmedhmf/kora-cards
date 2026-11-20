@@ -43,7 +43,7 @@
               </ng-container>
               <img *ngIf="media.kind === 'video' && media.posterUrl && (preferStillOnSmartTv || failedVideos().has(media.path))" class="wall-ball-video" [src]="media.posterUrl" alt="Still image of KORA rendered ball">
               <video *ngIf="media.kind === 'video' && (!media.posterUrl || (!preferStillOnSmartTv && !failedVideos().has(media.path)))" class="wall-ball-video" [src]="media.url"
-                [poster]="media.posterUrl || null" [wallVisible]="!tile.flipped" (wallPlaybackFailed)="markVideoFailed(media.path)" muted loop playsinline preload="metadata" disablepictureinpicture
+                [attr.poster]="media.posterUrl || null" [wallVisible]="!tile.flipped" (wallPlaybackFailed)="markVideoFailed(media.path)" muted loop playsinline preload="metadata" disablepictureinpicture
                 aria-label="KORA rendered football animation"></video>
               <button *ngIf="media.kind === 'video' && media.qrUrl" class="wall-qr-side wall-video-qr" type="button" (click)="showQr(media)" title="Enlarge ball video download QR" aria-label="Enlarge ball video download QR">
                 <img [src]="qrImage(media)" alt="QR code to download this ball MP4">
@@ -61,7 +61,7 @@
               </ng-container>
               <img *ngIf="media.kind === 'video' && media.posterUrl && (preferStillOnSmartTv || failedVideos().has(media.path))" class="wall-ball-video" [src]="media.posterUrl" alt="Still image of KORA rendered ball">
               <video *ngIf="media.kind === 'video' && (!media.posterUrl || (!preferStillOnSmartTv && !failedVideos().has(media.path)))" class="wall-ball-video" [src]="media.url"
-                [poster]="media.posterUrl || null" [wallVisible]="tile.flipped" (wallPlaybackFailed)="markVideoFailed(media.path)" muted loop playsinline preload="metadata" disablepictureinpicture
+                [attr.poster]="media.posterUrl || null" [wallVisible]="tile.flipped" (wallPlaybackFailed)="markVideoFailed(media.path)" muted loop playsinline preload="metadata" disablepictureinpicture
                 aria-label="KORA rendered football animation"></video>
               <button *ngIf="media.kind === 'video' && media.qrUrl" class="wall-qr-side wall-video-qr" type="button" (click)="showQr(media)" title="Enlarge ball video download QR" aria-label="Enlarge ball video download QR">
                 <img [src]="qrImage(media)" alt="QR code to download this ball MP4">
