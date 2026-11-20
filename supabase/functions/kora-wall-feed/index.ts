@@ -78,16 +78,26 @@ Deno.serve(async request=>{
         .range(offset,offset+PAGE_SIZE-1),
     ]);
     if(cardResult.error)throw cardResult.error;
-    if(videoResult.error)throw videoResult.error;
+    // Keep approved MP4s visible during deployment of the QR-token migration.
+    let effectiveVideoResult=videoResult;
+    if(videoResult.error?.code==='42703'){
+      effectiveVideoResult=await admin.from('kora_wall_ball_videos')
+        .select('storage_path,uploaded_at')
+        .eq('approved',true).eq('event_screen_consent',true)
+        .gt('uploaded_at',since)
+        .order('uploaded_at',{ascending:false})
+        .range(offset,offset+PAGE_SIZE-1);
+    }
+    if(effectiveVideoResult.error)throw effectiveVideoResult.error;
 
     const validCards=(cardResult.data||[]).filter(row=>
       typeof row.card_storage_path==='string'&&
       typeof row.wall_share_token==='string'&&
       typeof row.card_uploaded_at==='string');
     const cardTokens=new Map(validCards.map(row=>[
-      row.card_storage_path,{token:row.wall_share_token,uploadedAt:row.card_uploaded_at},
+      row.card_storage_path,{token:typeof row.wall_share_token==='string'?row.wall_share_token:null,uploadedAt:row.card_uploaded_at},
     ]));
-    const cards:{path:string;url:string;qrUrl:string;uploadedAt:string}[]=[];
+    const cards:{path:string;url:string;qrUrl?:string;uploadedAt:string}[]=[];
     if(validCards.length){
       const paths=validCards.map(row=>row.card_storage_path);
       const {data:urls,error:signError}=await admin.storage.from('kora-cards')
@@ -102,10 +112,10 @@ Deno.serve(async request=>{
         }
       }
     }
-    const validVideos=(videoResult.data||[]).filter(row=>
+    const validVideos=(effectiveVideoResult.data||[]).filter(row=>
       typeof row.storage_path==='string'&&
       /^balls\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9._-]+\.mp4$/.test(row.storage_path)&&
-      typeof row.uploaded_at==='string'&&typeof row.wall_share_token==='string');
+      typeof row.uploaded_at==='string');
     const videoMeta=new Map(validVideos.map(row=>[row.storage_path,{uploadedAt:row.uploaded_at,token:row.wall_share_token}]));
     const videos:{path:string;url:string;qrUrl:string;uploadedAt:string}[]=[];
     if(validVideos.length){
@@ -116,13 +126,13 @@ Deno.serve(async request=>{
         if(item.signedUrl&&item.path){
           const meta=videoMeta.get(item.path);
           if(meta)videos.push({path:item.path,url:item.signedUrl,
-            qrUrl:`${projectUrl}/functions/v1/kora-wall-download?type=video&t=${meta.token}`,
+            ...(meta.token?{qrUrl:`${projectUrl}/functions/v1/kora-wall-download?type=video&t=${meta.token}`}:{}),
             uploadedAt:meta.uploadedAt});
         }
       }
     }
     const nextOffset=(cardResult.data?.length===PAGE_SIZE||
-      videoResult.data?.length===PAGE_SIZE)?offset+PAGE_SIZE:null;
+      effectiveVideoResult.data?.length===PAGE_SIZE)?offset+PAGE_SIZE:null;
     return responseJson(200,{cards,videos,nextOffset},origin);
   }catch(error){
     console.error('KORA wall feed unavailable',error);
