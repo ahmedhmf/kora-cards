@@ -71,22 +71,30 @@ Deno.serve(async request=>{
         .order('card_uploaded_at',{ascending:false})
         .range(offset,offset+PAGE_SIZE-1),
       admin.from('kora_wall_ball_videos')
-        .select('storage_path,uploaded_at,wall_share_token')
+        .select('storage_path,uploaded_at,wall_share_token,poster_storage_path')
         .eq('approved',true).eq('event_screen_consent',true)
         .gt('uploaded_at',since)
         .order('uploaded_at',{ascending:false})
         .range(offset,offset+PAGE_SIZE-1),
     ]);
     if(cardResult.error)throw cardResult.error;
-    // Keep approved MP4s visible during deployment of the QR-token migration.
+    // Support staged deployments of poster and QR-token database migrations.
     let effectiveVideoResult=videoResult;
     if(videoResult.error?.code==='42703'){
       effectiveVideoResult=await admin.from('kora_wall_ball_videos')
-        .select('storage_path,uploaded_at')
+        .select('storage_path,uploaded_at,wall_share_token')
         .eq('approved',true).eq('event_screen_consent',true)
         .gt('uploaded_at',since)
         .order('uploaded_at',{ascending:false})
         .range(offset,offset+PAGE_SIZE-1);
+      if(effectiveVideoResult.error?.code==='42703'){
+        effectiveVideoResult=await admin.from('kora_wall_ball_videos')
+          .select('storage_path,uploaded_at')
+          .eq('approved',true).eq('event_screen_consent',true)
+          .gt('uploaded_at',since)
+          .order('uploaded_at',{ascending:false})
+          .range(offset,offset+PAGE_SIZE-1);
+      }
     }
     if(effectiveVideoResult.error)throw effectiveVideoResult.error;
 
@@ -95,9 +103,10 @@ Deno.serve(async request=>{
       typeof row.wall_share_token==='string'&&
       typeof row.card_uploaded_at==='string');
     const cardTokens=new Map(validCards.map(row=>[
-      row.card_storage_path,{token:typeof row.wall_share_token==='string'?row.wall_share_token:null,uploadedAt:row.card_uploaded_at},
+      row.card_storage_path,{token:typeof row.wall_share_token==='string'?row.wall_share_token:null,
+      posterPath:typeof row.poster_storage_path==='string'?row.poster_storage_path:null,uploadedAt:row.card_uploaded_at},
     ]));
-    const cards:{path:string;url:string;qrUrl?:string;uploadedAt:string}[]=[];
+    const cards:{path:string;url:string;qrUrl?:string;posterUrl?:string;uploadedAt:string}[]=[];
     if(validCards.length){
       const paths=validCards.map(row=>row.card_storage_path);
       const {data:urls,error:signError}=await admin.storage.from('kora-cards')
@@ -128,6 +137,25 @@ Deno.serve(async request=>{
           if(meta)videos.push({path:item.path,url:item.signedUrl,
             ...(meta.token?{qrUrl:`${projectUrl}/functions/v1/kora-wall-download?type=video&t=${meta.token}`}:{}),
             uploadedAt:meta.uploadedAt});
+        }
+      }
+    }
+    // Poster links are independent; a missing JPEG must never hide the MP4.
+    const withPoster=videos.filter(item=>{
+      const posterPath=videoMeta.get(item.path)?.posterPath;
+      return !!posterPath && posterPath===item.path.replace(/\\.mp4$/,'.jpg');
+    });
+    if(withPoster.length){
+      const paths=withPoster.map(item=>videoMeta.get(item.path)!.posterPath!);
+      const {data:posterUrls,error:posterError}=await admin.storage.from('kora-wall-media')
+        .createSignedUrls(paths,10*60);
+      if(posterError)console.error('KORA ball poster URLs unavailable',posterError);
+      else{
+        const byPath=new Map((posterUrls||[]).filter(item=>item.path&&item.signedUrl)
+          .map(item=>[item.path!,item.signedUrl!]));
+        for(const item of withPoster){
+          const posterPath=videoMeta.get(item.path)?.posterPath;
+          if(posterPath && byPath.has(posterPath))item.posterUrl=byPath.get(posterPath);
         }
       }
     }
