@@ -15,7 +15,7 @@
   <section class="wall-lock" *ngIf="!connected()">
     <div class="lock-eyebrow">KORA / EVENT DISPLAY</div>
     <h1>THE PLAYER<br><em>WALL</em></h1>
-    <p>Show event-approved KORA player cards on your TV for one hour after upload, with automatic card flips as new cards arrive.</p>
+    <p>Show event-approved KORA player cards and rendered-ball videos on your TV for one hour after upload, with automatic tile flips as new media arrives.</p>
     <form (submit)="$event.preventDefault();connect()" class="wall-login">
       <label for="wall-code">EVENT DISPLAY ACCESS CODE</label>
       <input id="wall-code" type="password" [ngModel]="accessCode()" (ngModelChange)="accessCode.set($event)"
@@ -30,24 +30,34 @@
   </section>
 
   <section class="wall-stage" *ngIf="connected()">
-    <div class="wall-grid" aria-label="Live 6 column by 2 row grid of KORA player cards">
+    <div class="wall-grid" aria-label="Live 6 column by 2 row grid of KORA cards and rendered-ball videos">
       <div *ngFor="let tile of tiles();index as i;trackBy:trackTile" class="wall-tile">
         <div class="wall-flipper" [class.is-flipped]="tile.flipped">
           <div class="wall-face wall-front">
-            <div class="wall-card-pair" *ngIf="tile.front as card">
-              <img class="wall-player-img" [src]="card.url" alt="KORA event player card" loading="eager">
-              <button class="wall-qr-side" type="button" (click)="showQr(card)" title="Enlarge this card's download QR code" aria-label="Enlarge card download QR code">
-                <img [src]="qrImage(card)" alt="QR code to download this player card">
-              </button>
+            <div class="wall-card-pair" *ngIf="tile.front as media">
+              <ng-container *ngIf="media.kind === 'card'">
+                <img class="wall-player-img" [src]="media.url" alt="KORA event player card" loading="eager">
+                <button class="wall-qr-side" type="button" (click)="showQr(media)" title="Enlarge this card's download QR code" aria-label="Enlarge card download QR code">
+                  <img [src]="qrImage(media)" alt="QR code to download this player card">
+                </button>
+              </ng-container>
+              <video *ngIf="media.kind === 'video'" class="wall-ball-video" [src]="media.url"
+                autoplay muted loop playsinline preload="metadata" disablepictureinpicture
+                aria-label="KORA rendered football animation"></video>
             </div>
             <div class="wall-placeholder" *ngIf="!tile.front"><img [src]="i % 2 === 0 ? '/brand/kora-tv-white.svg' : '/brand/sfl-tv-white.png'" [alt]="i % 2 === 0 ? 'KORA' : 'Social Football League'" [class.wall-placeholder-sfl]="i % 2 !== 0"></div>
           </div>
           <div class="wall-face wall-back">
-            <div class="wall-card-pair" *ngIf="tile.back as card">
-              <img class="wall-player-img" [src]="card.url" alt="KORA event player card" loading="eager">
-              <button class="wall-qr-side" type="button" (click)="showQr(card)" title="Enlarge this card's download QR code" aria-label="Enlarge card download QR code">
-                <img [src]="qrImage(card)" alt="QR code to download this player card">
-              </button>
+            <div class="wall-card-pair" *ngIf="tile.back as media">
+              <ng-container *ngIf="media.kind === 'card'">
+                <img class="wall-player-img" [src]="media.url" alt="KORA event player card" loading="eager">
+                <button class="wall-qr-side" type="button" (click)="showQr(media)" title="Enlarge this card's download QR code" aria-label="Enlarge card download QR code">
+                  <img [src]="qrImage(media)" alt="QR code to download this player card">
+                </button>
+              </ng-container>
+              <video *ngIf="media.kind === 'video'" class="wall-ball-video" [src]="media.url"
+                autoplay muted loop playsinline preload="metadata" disablepictureinpicture
+                aria-label="KORA rendered football animation"></video>
             </div>
             <div class="wall-placeholder" *ngIf="!tile.back"><img [src]="i % 2 === 0 ? '/brand/kora-tv-white.svg' : '/brand/sfl-tv-white.png'" [alt]="i % 2 === 0 ? 'KORA' : 'Social Football League'" [class.wall-placeholder-sfl]="i % 2 !== 0"></div>
           </div>
@@ -107,7 +117,7 @@
       <span class="wall-warning" *ngIf="error()" role="status">{{error()}}</span>
       <div class="wall-footer-controls">
         <span class="wall-live"><i></i> LIVE</span>
-        <button class="wall-header-btn" type="button" (click)="showNewestCardQr()" [disabled]="cards().length===0" title="Show a large QR for the newest card">⛶ SCAN CARD</button>
+        <button class="wall-header-btn" type="button" (click)="showNewestCardQr()" [disabled]="!hasCards()" title="Show a large QR for the newest card">⛶ SCAN CARD</button>
         <button class="wall-header-btn" type="button" (click)="toggleFullscreen()" title="Toggle fullscreen">⛶ FULLSCREEN</button>
         <button class="wall-header-btn wall-exit" type="button" (click)="disconnect()" title="Lock the wall">LOCK</button>
       </div>
