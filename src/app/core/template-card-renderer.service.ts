@@ -75,6 +75,7 @@ export class TemplateCardRendererService {
     const ctx = canvas.getContext('2d')!;
     ctx.clearRect(0, 0, this.width, this.height);
     ctx.drawImage(this.template, 0, 0, this.width, this.height);
+    this.clearTemplateScoreAndPosition(ctx);
     // Only the transparent person is placed over the white portrait panel.
     ctx.save();
     // Let the player's head project above the portrait panel border (reference card),
@@ -116,18 +117,24 @@ export class TemplateCardRendererService {
     ctx.fillRect(186, 962, 509, 195);
   }
 
-  private drawCardInformation(ctx: CanvasRenderingContext2D, data: CardData, showPreviewScore = true) {
+  private clearTemplateScoreAndPosition(ctx: CanvasRenderingContext2D) {
+    // The template includes fixed example lettering in the left portrait panel.
+    // Clear it *before* drawing the person/camera, so the replacement never
+    // creates a solid rectangle over the player.
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(192, 481, 176, 168);
+  }
+
+  private drawCardInformation(ctx: CanvasRenderingContext2D, data: CardData) {
     this.clearTemplateStatistics(ctx);
-    // Additional score/position lettering is a camera framing guide ONLY.
-    // Never draw a background box or duplicate it in the final exported card.
-    if (showPreviewScore) {
-      ctx.fillStyle = '#000';
-      ctx.textAlign = 'left';
-      ctx.font = '900 88px "Chakra Petch", sans-serif';
-      ctx.fillText(String(data.match.overall), 198, 568, 165);
-      ctx.font = '900 51px "Chakra Petch", sans-serif';
-      ctx.fillText(data.position, 200, 637, 150);
-    }
+    // Draw the live values in both preview and final export. In particular,
+    // never retain the position baked into the source PNG.
+    ctx.fillStyle = '#000';
+    ctx.textAlign = 'left';
+    ctx.font = '900 88px "Chakra Petch", sans-serif';
+    ctx.fillText(String(data.match.overall), 198, 568, 165);
+    ctx.font = '900 51px "Chakra Petch", sans-serif';
+    ctx.fillText(data.position, 200, 637, 150);
 
     ctx.fillStyle = '#000'; ctx.fillRect(168, 862, 542, 82);
     ctx.fillStyle = '#fff'; ctx.font = '900 38px "Chakra Petch", sans-serif';
@@ -160,6 +167,7 @@ export class TemplateCardRendererService {
     const ctx = canvas.getContext('2d')!;
     ctx.clearRect(0, 0, this.width, this.height);
     ctx.drawImage(this.template, 0, 0, this.width, this.height);
+    this.clearTemplateScoreAndPosition(ctx);
     const sw = video.videoWidth, sh = video.videoHeight;
     if (sw && sh) {
       // The live view sits *inside* the white inner portrait border.
