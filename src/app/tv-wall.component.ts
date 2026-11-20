@@ -36,6 +36,10 @@ export class TvWallComponent implements OnInit,OnDestroy {
   readonly fullScreen=signal(false);
   readonly enlargedQr=signal<WallMedia|null>(null);
   readonly failedVideos=signal<ReadonlySet<string>>(new Set());
+  // Built-in Smart TV decoders can report "playing" but render black.
+  // Prefer a captured still on Smart TVs; desktop browsers keep video.
+  readonly preferStillOnSmartTv=typeof navigator!=='undefined' &&
+    /Tizen|SMART-TV|SmartTV|HbbTV/i.test(navigator.userAgent);
   private readonly qrCache=new Map<string,string>();
   private flipTimer?:ReturnType<typeof setInterval>;
   private refreshTimer?:ReturnType<typeof setInterval>;
