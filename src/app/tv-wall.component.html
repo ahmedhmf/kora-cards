@@ -44,6 +44,9 @@
               <video *ngIf="media.kind === 'video'" class="wall-ball-video" [src]="media.url"
                 [wallVisible]="!tile.flipped" muted loop playsinline preload="metadata" disablepictureinpicture
                 aria-label="KORA rendered football animation"></video>
+              <button *ngIf="media.kind === 'video'" class="wall-qr-side wall-video-qr" type="button" (click)="showQr(media)" title="Enlarge ball video download QR" aria-label="Enlarge ball video download QR">
+                <img [src]="qrImage(media)" alt="QR code to download this ball MP4">
+              </button>
             </div>
             <div class="wall-placeholder" *ngIf="!tile.front"><img [src]="i % 2 === 0 ? '/brand/kora-tv-white.svg' : '/brand/sfl-tv-white.png'" [alt]="i % 2 === 0 ? 'KORA' : 'Social Football League'" [class.wall-placeholder-sfl]="i % 2 !== 0"></div>
           </div>
@@ -58,22 +61,26 @@
               <video *ngIf="media.kind === 'video'" class="wall-ball-video" [src]="media.url"
                 [wallVisible]="tile.flipped" muted loop playsinline preload="metadata" disablepictureinpicture
                 aria-label="KORA rendered football animation"></video>
+              <button *ngIf="media.kind === 'video'" class="wall-qr-side wall-video-qr" type="button" (click)="showQr(media)" title="Enlarge ball video download QR" aria-label="Enlarge ball video download QR">
+                <img [src]="qrImage(media)" alt="QR code to download this ball MP4">
+              </button>
             </div>
             <div class="wall-placeholder" *ngIf="!tile.back"><img [src]="i % 2 === 0 ? '/brand/kora-tv-white.svg' : '/brand/sfl-tv-white.png'" [alt]="i % 2 === 0 ? 'KORA' : 'Social Football League'" [class.wall-placeholder-sfl]="i % 2 !== 0"></div>
           </div>
         </div>
       </div>
     </div>
-    <div class="wall-qr-modal" *ngIf="enlargedQr() as card" role="dialog" aria-modal="true" aria-label="Scan QR code to download player card">
+    <div class="wall-qr-modal" *ngIf="enlargedQr() as card" role="dialog" aria-modal="true" aria-label="Scan QR code to download KORA media">
       <div class="wall-qr-modal-inner">
         <button class="wall-qr-dismiss" type="button" (click)="closeQr()" aria-label="Close enlarged QR code">×</button>
-        <img class="wall-qr-modal-card" [src]="card.url" alt="Selected KORA player card">
+        <img *ngIf="card.kind === 'card'" class="wall-qr-modal-card" [src]="card.url" alt="Selected KORA player card">
+        <video *ngIf="card.kind === 'video'" class="wall-qr-modal-card" [src]="card.url" autoplay muted loop playsinline controls aria-label="Selected KORA ball animation"></video>
         <div class="wall-qr-modal-scan">
-          <strong>SCAN TO GET YOUR CARD</strong>
-          <img [src]="qrImage(card)" alt="Scannable QR code to download the selected player card">
-          <p>Point your phone camera here to download this player card.</p>
+          <strong>{{card.kind === 'video' ? 'SCAN TO GET YOUR BALL VIDEO' : 'SCAN TO GET YOUR CARD'}}</strong>
+          <img [src]="qrImage(card)" alt="Scannable QR code to download the selected KORA media">
+          <p>Point your phone camera here to download {{card.kind === 'video' ? 'this MP4 video' : 'this player card'}}.</p>
           <a class="wall-qr-test-link" [href]="card.qrUrl" target="_blank" rel="noopener noreferrer">Test download link ↗</a>
-          <small>QR link valid for 7 days after the card was created.</small>
+          <small>QR link valid for 7 days after upload.</small>
         </div>
       </div>
     </div>
