@@ -258,6 +258,7 @@ export class TvWallComponent implements OnInit,OnDestroy {
   closeQr():void{this.enlargedQr.set(null)}
   showInstagramQr():void{this.enlargedQr.set(null);this.instagramPopupOpen.set(true)}
   closeInstagramQr():void{this.instagramPopupOpen.set(false)}
+  hasCards():boolean{return this.cards().some(media=>media.kind==='card')}
   showNewestCardQr():void{
     const first=this.cards().find((media):media is WallCard=>media.kind==='card'&&this.isFresh(media));
     if(first)this.showQr(first);
