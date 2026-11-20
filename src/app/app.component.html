@@ -56,16 +56,10 @@
         <input [ngModel]="store.playerNumber()" (ngModelChange)="store.setNumber($event)"
           type="number" inputmode="numeric" min="0" max="99" placeholder="10" required>
       </label>
-      <label class="cloud-consent-label data-consent-label">
-        <input type="checkbox" [checked]="store.dataConsent()"
-          (change)="store.setCombinedConsent($any($event.target).checked)"
-          aria-label="Agree to store my player details and finished card and show my card on the event TV wall">
-        <span>I agree to KORA saving my name, email, Instagram, telephone number, position, T-shirt number and finished player card in private storage, linking the card to my registration, and displaying my finished card on the KORA event TV wall for event visitors. The QR download link is valid for 7 days. This is not marketing consent.</span>
-      </label>
+      <p class="privacy" role="note">By choosing <strong>I AGREE — OPEN CAMERA</strong> or <strong>I AGREE — UPLOAD PHOTO</strong>, you agree that KORA will save your name, email, Instagram, telephone number, position, T-shirt number and completed player card in private Supabase storage, link the card to your registration, and show the completed card on the event TV wall. Your original camera photo stays on this device. Your finished card will upload automatically; the QR download link lasts seven days. This is not marketing consent.</p>
     </div>
-    <button class="primary" (click)="store.openCamera()" [disabled]="store.registrationBusy()"><span class="camera-icon">●</span> {{store.registrationBusy() ? 'SAVING DETAILS…' : 'OPEN CAMERA'}} <b>→</b></button>
-    <label class="upload-button" [class.upload-disabled]="store.registrationBusy()" style="display:block;text-align:center;padding:12px;border:1px solid #ed1c24">OR UPLOAD PHOTO<input type="file" accept="image/*" (change)="store.selectCardPhoto($event)" [disabled]="store.registrationBusy()" style="display:none"></label>
-    <p class="privacy">Your photo is processed on this device.</p>
+    <button class="primary" (click)="store.openCamera()" [disabled]="store.registrationBusy()"><span class="camera-icon">●</span> {{store.registrationBusy() ? 'SAVING DETAILS…' : 'I AGREE — OPEN CAMERA'}} <b>→</b></button>
+    <label class="upload-button" [class.upload-disabled]="store.registrationBusy()" style="display:block;text-align:center;padding:12px;border:1px solid #ed1c24">I AGREE — UPLOAD PHOTO<input type="file" accept="image/*" (change)="store.selectCardPhoto($event)" [disabled]="store.registrationBusy()" style="display:none"></label>
     <div class="error" *ngIf="store.error()">{{store.error()}}</div>
   </section>
 
