@@ -6,7 +6,7 @@ import {qrDataUrl} from './core/qr-code.util';
 import {WallVisibleVideoDirective} from './core/wall-visible-video.directive';
 
 interface WallCard { kind:'card'; path:string; url:string; qrUrl:string; uploadedAt:string; }
-interface WallVideo { kind:'video'; path:string; url:string; qrUrl?:string; uploadedAt:string; }
+interface WallVideo { kind:'video'; path:string; url:string; qrUrl?:string; posterUrl?:string; uploadedAt:string; }
 type WallMedia=WallCard|WallVideo;
 interface WallTile { front:WallMedia|null; back:WallMedia|null; flipped:boolean; }
 interface WallPage { cards:WallCard[]; videos:WallVideo[]; nextOffset:number|null; error?:string; }
@@ -35,6 +35,7 @@ export class TvWallComponent implements OnInit,OnDestroy {
   readonly instagramPopupOpen=signal(false);
   readonly fullScreen=signal(false);
   readonly enlargedQr=signal<WallMedia|null>(null);
+  readonly failedVideos=signal<ReadonlySet<string>>(new Set());
   private readonly qrCache=new Map<string,string>();
   private flipTimer?:ReturnType<typeof setInterval>;
   private refreshTimer?:ReturnType<typeof setInterval>;
@@ -83,6 +84,7 @@ export class TvWallComponent implements OnInit,OnDestroy {
     this.connected.set(false);
     this.cards.set([]);
     this.qrCache.clear();
+    this.failedVideos.set(new Set());
     this.enlargedQr.set(null);
     this.instagramPopupOpen.set(false);
     this.tiles.set(Array.from({length:this.slots},()=>({front:null,back:null,flipped:false})));
@@ -126,7 +128,9 @@ export class TvWallComponent implements OnInit,OnDestroy {
       .map(c=>({...c,kind:'card' as const}));
     const videos=Array.isArray(body.videos)?body.videos.filter(v=>
       typeof v.path==='string'&&typeof v.url==='string'&&typeof v.uploadedAt==='string')
-      .map(v=>({kind:'video' as const,path:v.path,url:v.url,qrUrl:typeof v.qrUrl==='string'&&v.qrUrl.startsWith('https://')?v.qrUrl:undefined,uploadedAt:v.uploadedAt})):[];
+      .map(v=>({kind:'video' as const,path:v.path,url:v.url,qrUrl:typeof v.qrUrl==='string'&&v.qrUrl.startsWith('https://')?v.qrUrl:undefined,
+        posterUrl:typeof v.posterUrl==='string'&&v.posterUrl.startsWith('https://')?v.posterUrl:undefined,
+        uploadedAt:v.uploadedAt})):[];
     return {cards,videos,nextOffset:typeof body.nextOffset==='number'?body.nextOffset:null};
   }
   private async populate(first:WallPage):Promise<void>{
@@ -255,6 +259,9 @@ export class TvWallComponent implements OnInit,OnDestroy {
     const encoded=qrDataUrl(card.qrUrl);
     this.qrCache.set(card.qrUrl,encoded);
     return encoded;
+  }
+  markVideoFailed(path:string):void{
+    this.failedVideos.update(previous=>new Set([...previous,path]));
   }
   showQr(card:WallMedia):void{if(!card.qrUrl)return;this.instagramPopupOpen.set(false);this.enlargedQr.set(card)}
   closeQr():void{this.enlargedQr.set(null)}
