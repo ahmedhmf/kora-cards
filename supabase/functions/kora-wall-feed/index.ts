@@ -71,7 +71,7 @@ Deno.serve(async request=>{
         .order('card_uploaded_at',{ascending:false})
         .range(offset,offset+PAGE_SIZE-1),
       admin.from('kora_wall_ball_videos')
-        .select('storage_path,uploaded_at')
+        .select('storage_path,uploaded_at,wall_share_token')
         .eq('approved',true).eq('event_screen_consent',true)
         .gt('uploaded_at',since)
         .order('uploaded_at',{ascending:false})
@@ -105,17 +105,19 @@ Deno.serve(async request=>{
     const validVideos=(videoResult.data||[]).filter(row=>
       typeof row.storage_path==='string'&&
       /^balls\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9._-]+\.mp4$/.test(row.storage_path)&&
-      typeof row.uploaded_at==='string');
-    const videoTimes=new Map(validVideos.map(row=>[row.storage_path,row.uploaded_at]));
-    const videos:{path:string;url:string;uploadedAt:string}[]=[];
+      typeof row.uploaded_at==='string'&&typeof row.wall_share_token==='string');
+    const videoMeta=new Map(validVideos.map(row=>[row.storage_path,{uploadedAt:row.uploaded_at,token:row.wall_share_token}]));
+    const videos:{path:string;url:string;qrUrl:string;uploadedAt:string}[]=[];
     if(validVideos.length){
       const {data:urls,error:signError}=await admin.storage.from('kora-wall-media')
         .createSignedUrls(validVideos.map(row=>row.storage_path),10*60);
       if(signError)throw signError;
       for(const item of urls||[]){
         if(item.signedUrl&&item.path){
-          const uploadedAt=videoTimes.get(item.path);
-          if(uploadedAt)videos.push({path:item.path,url:item.signedUrl,uploadedAt});
+          const meta=videoMeta.get(item.path);
+          if(meta)videos.push({path:item.path,url:item.signedUrl,
+            qrUrl:`${projectUrl}/functions/v1/kora-wall-download?type=video&t=${meta.token}`,
+            uploadedAt:meta.uploadedAt});
         }
       }
     }
