@@ -103,10 +103,9 @@ Deno.serve(async request=>{
       typeof row.wall_share_token==='string'&&
       typeof row.card_uploaded_at==='string');
     const cardTokens=new Map(validCards.map(row=>[
-      row.card_storage_path,{token:typeof row.wall_share_token==='string'?row.wall_share_token:null,
-      posterPath:typeof row.poster_storage_path==='string'?row.poster_storage_path:null,uploadedAt:row.card_uploaded_at},
+      row.card_storage_path,{token:row.wall_share_token,uploadedAt:row.card_uploaded_at},
     ]));
-    const cards:{path:string;url:string;qrUrl?:string;posterUrl?:string;uploadedAt:string}[]=[];
+    const cards:{path:string;url:string;qrUrl:string;uploadedAt:string}[]=[];
     if(validCards.length){
       const paths=validCards.map(row=>row.card_storage_path);
       const {data:urls,error:signError}=await admin.storage.from('kora-cards')
