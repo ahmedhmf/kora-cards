@@ -224,3 +224,13 @@ npx supabase functions deploy kora-wall-feed --no-verify-jwt
 A GitHub merge or Vercel deployment by itself **does not** update the deployed
 Supabase Edge Function. After deployment, lock the TV wall and enter the new
 code. Changing the secret invalidates the old code on the next feed request.
+
+## Rendered-ball MP4 wall integration
+
+The wall can also display explicitly consented and approved rendered-ball MP4
+clips alongside PNG player cards. The private video bucket, database table,
+trusted server-side upload requirements, and deployment sequence are fully
+specified in [KORA_BALL_MP4_WALL_HANDOFF.md](KORA_BALL_MP4_WALL_HANDOFF.md).
+Run `supabase/kora-wall-ball-videos.sql` and redeploy `kora-wall-feed` before
+shipping the corresponding frontend; otherwise the wall feed will fail while
+querying the new table. Only PNG player cards get seven-day download QR codes.
