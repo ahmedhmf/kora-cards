@@ -41,8 +41,9 @@
                   <img [src]="qrImage(media)" alt="QR code to download this player card">
                 </button>
               </ng-container>
-              <video *ngIf="media.kind === 'video'" class="wall-ball-video" [src]="media.url"
-                [wallVisible]="!tile.flipped" muted loop playsinline preload="metadata" disablepictureinpicture
+              <img *ngIf="media.kind === 'video' && media.posterUrl && failedVideos().has(media.path)" class="wall-ball-video" [src]="media.posterUrl" alt="Still image of KORA rendered ball">
+              <video *ngIf="media.kind === 'video' && (!failedVideos().has(media.path) || !media.posterUrl)" class="wall-ball-video" [src]="media.url"
+                [poster]="media.posterUrl || null" [wallVisible]="!tile.flipped" (wallPlaybackFailed)="markVideoFailed(media.path)" muted loop playsinline preload="metadata" disablepictureinpicture
                 aria-label="KORA rendered football animation"></video>
               <button *ngIf="media.kind === 'video' && media.qrUrl" class="wall-qr-side wall-video-qr" type="button" (click)="showQr(media)" title="Enlarge ball video download QR" aria-label="Enlarge ball video download QR">
                 <img [src]="qrImage(media)" alt="QR code to download this ball MP4">
@@ -58,8 +59,9 @@
                   <img [src]="qrImage(media)" alt="QR code to download this player card">
                 </button>
               </ng-container>
-              <video *ngIf="media.kind === 'video'" class="wall-ball-video" [src]="media.url"
-                [wallVisible]="tile.flipped" muted loop playsinline preload="metadata" disablepictureinpicture
+              <img *ngIf="media.kind === 'video' && media.posterUrl && failedVideos().has(media.path)" class="wall-ball-video" [src]="media.posterUrl" alt="Still image of KORA rendered ball">
+              <video *ngIf="media.kind === 'video' && (!failedVideos().has(media.path) || !media.posterUrl)" class="wall-ball-video" [src]="media.url"
+                [poster]="media.posterUrl || null" [wallVisible]="tile.flipped" (wallPlaybackFailed)="markVideoFailed(media.path)" muted loop playsinline preload="metadata" disablepictureinpicture
                 aria-label="KORA rendered football animation"></video>
               <button *ngIf="media.kind === 'video' && media.qrUrl" class="wall-qr-side wall-video-qr" type="button" (click)="showQr(media)" title="Enlarge ball video download QR" aria-label="Enlarge ball video download QR">
                 <img [src]="qrImage(media)" alt="QR code to download this ball MP4">
