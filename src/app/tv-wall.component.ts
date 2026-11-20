@@ -6,7 +6,7 @@ import {qrDataUrl} from './core/qr-code.util';
 import {WallVisibleVideoDirective} from './core/wall-visible-video.directive';
 
 interface WallCard { kind:'card'; path:string; url:string; qrUrl:string; uploadedAt:string; }
-interface WallVideo { kind:'video'; path:string; url:string; qrUrl:string; uploadedAt:string; }
+interface WallVideo { kind:'video'; path:string; url:string; qrUrl?:string; uploadedAt:string; }
 type WallMedia=WallCard|WallVideo;
 interface WallTile { front:WallMedia|null; back:WallMedia|null; flipped:boolean; }
 interface WallPage { cards:WallCard[]; videos:WallVideo[]; nextOffset:number|null; error?:string; }
@@ -125,8 +125,8 @@ export class TvWallComponent implements OnInit,OnDestroy {
     const cards=body.cards.filter(c=>typeof c.path==='string'&&typeof c.url==='string'&&typeof c.qrUrl==='string'&&typeof c.uploadedAt==='string')
       .map(c=>({...c,kind:'card' as const}));
     const videos=Array.isArray(body.videos)?body.videos.filter(v=>
-      typeof v.path==='string'&&typeof v.url==='string'&&typeof v.qrUrl==='string'&&typeof v.uploadedAt==='string')
-      .map(v=>({kind:'video' as const,path:v.path,url:v.url,qrUrl:v.qrUrl,uploadedAt:v.uploadedAt})):[];
+      typeof v.path==='string'&&typeof v.url==='string'&&typeof v.uploadedAt==='string')
+      .map(v=>({kind:'video' as const,path:v.path,url:v.url,qrUrl:typeof v.qrUrl==='string'&&v.qrUrl.startsWith('https://')?v.qrUrl:undefined,uploadedAt:v.uploadedAt})):[];
     return {cards,videos,nextOffset:typeof body.nextOffset==='number'?body.nextOffset:null};
   }
   private async populate(first:WallPage):Promise<void>{
@@ -249,13 +249,14 @@ export class TvWallComponent implements OnInit,OnDestroy {
   // The QR contains a compact, seven-day token URL rather than the dense
   // and rapidly expiring image URL. No external QR provider is involved.
   qrImage(card:WallMedia):string{
+    if(!card.qrUrl)return '';
     const cached=this.qrCache.get(card.qrUrl);
     if(cached)return cached;
     const encoded=qrDataUrl(card.qrUrl);
     this.qrCache.set(card.qrUrl,encoded);
     return encoded;
   }
-  showQr(card:WallMedia):void{this.instagramPopupOpen.set(false);this.enlargedQr.set(card)}
+  showQr(card:WallMedia):void{if(!card.qrUrl)return;this.instagramPopupOpen.set(false);this.enlargedQr.set(card)}
   closeQr():void{this.enlargedQr.set(null)}
   showInstagramQr():void{this.enlargedQr.set(null);this.instagramPopupOpen.set(true)}
   closeInstagramQr():void{this.instagramPopupOpen.set(false)}
