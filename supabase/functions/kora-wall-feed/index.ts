@@ -125,8 +125,9 @@ Deno.serve(async request=>{
       typeof row.storage_path==='string'&&
       /^balls\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9._-]+\.mp4$/.test(row.storage_path)&&
       typeof row.uploaded_at==='string');
-    const videoMeta=new Map(validVideos.map(row=>[row.storage_path,{uploadedAt:row.uploaded_at,token:row.wall_share_token}]));
-    const videos:{path:string;url:string;qrUrl:string;uploadedAt:string}[]=[];
+    const videoMeta=new Map(validVideos.map(row=>[row.storage_path,{uploadedAt:row.uploaded_at,token:typeof row.wall_share_token==='string'?row.wall_share_token:null,
+      posterPath:typeof row.poster_storage_path==='string'?row.poster_storage_path:null}]));
+    const videos:{path:string;url:string;qrUrl?:string;posterUrl?:string;uploadedAt:string}[]=[];
     if(validVideos.length){
       const {data:urls,error:signError}=await admin.storage.from('kora-wall-media')
         .createSignedUrls(validVideos.map(row=>row.storage_path),10*60);
