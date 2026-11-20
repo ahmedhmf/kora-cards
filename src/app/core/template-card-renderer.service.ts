@@ -75,6 +75,7 @@ export class TemplateCardRendererService {
     const ctx = canvas.getContext('2d')!;
     ctx.clearRect(0, 0, this.width, this.height);
     ctx.drawImage(this.template, 0, 0, this.width, this.height);
+    this.clearTemplateScorePosition(ctx);
     // Only the transparent person is placed over the white portrait panel.
     ctx.save();
     // Let the player's head project above the portrait panel border (reference card),
@@ -101,9 +102,17 @@ export class TemplateCardRendererService {
       x, y, bounds.width * scale, bounds.height * scale);
     ctx.restore();
 
-    // The exported template already contains its own score/position artwork.
-    // Don't draw these a second time on the completed photo.
-    this.drawCardInformation(ctx, data, false);
+    // The template's placeholder rating and position were removed above.
+    // Always draw the selected player's overall rating and dropdown position.
+    this.drawCardInformation(ctx, data);
+  }
+
+  private clearTemplateScorePosition(ctx: CanvasRenderingContext2D) {
+    // The source PNG has a baked-in "91 CAM". Cover only that sample text
+    // with the exact solid portrait-panel colour before adding the cutout.
+    // This avoids erasing any part of the player's photo.
+    ctx.fillStyle = '#ecebf0';
+    ctx.fillRect(195, 474, 174, 178);
   }
 
   private clearTemplateStatistics(ctx: CanvasRenderingContext2D) {
@@ -116,18 +125,16 @@ export class TemplateCardRendererService {
     ctx.fillRect(186, 962, 509, 195);
   }
 
-  private drawCardInformation(ctx: CanvasRenderingContext2D, data: CardData, showPreviewScore = true) {
+  private drawCardInformation(ctx: CanvasRenderingContext2D, data: CardData) {
     this.clearTemplateStatistics(ctx);
-    // Additional score/position lettering is a camera framing guide ONLY.
-    // Never draw a background box or duplicate it in the final exported card.
-    if (showPreviewScore) {
-      ctx.fillStyle = '#000';
-      ctx.textAlign = 'left';
-      ctx.font = '900 88px "Chakra Petch", sans-serif';
-      ctx.fillText(String(data.match.overall), 198, 568, 165);
-      ctx.font = '900 51px "Chakra Petch", sans-serif';
-      ctx.fillText(data.position, 200, 637, 150);
-    }
+    // These values come from the selected player's match and position,
+    // in both live preview and the final exported PNG.
+    ctx.fillStyle = '#000';
+    ctx.textAlign = 'left';
+    ctx.font = '900 88px "Chakra Petch", sans-serif';
+    ctx.fillText(String(data.match.overall), 198, 568, 165);
+    ctx.font = '900 51px "Chakra Petch", sans-serif';
+    ctx.fillText(data.position, 200, 637, 150);
 
     ctx.fillStyle = '#000'; ctx.fillRect(168, 862, 542, 82);
     ctx.fillStyle = '#fff'; ctx.font = '900 38px "Chakra Petch", sans-serif';
@@ -160,6 +167,7 @@ export class TemplateCardRendererService {
     const ctx = canvas.getContext('2d')!;
     ctx.clearRect(0, 0, this.width, this.height);
     ctx.drawImage(this.template, 0, 0, this.width, this.height);
+    this.clearTemplateScorePosition(ctx);
     const sw = video.videoWidth, sh = video.videoHeight;
     if (sw && sh) {
       // The live view sits *inside* the white inner portrait border.
