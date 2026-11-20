@@ -1,4 +1,4 @@
-// Read-only event TV wall feed. Server-issued short-lived signed image URLs.
+// Read-only event TV wall feed. Server-issued short-lived signed PNG and MP4 URLs.
 // The event access code is never stored in GitHub or exposed to the PWA build.
 import {createClient} from 'npm:@supabase/supabase-js@2';
 
@@ -59,36 +59,69 @@ Deno.serve(async request=>{
 
   try{
     const admin=createClient(projectUrl,secret,{auth:{autoRefreshToken:false,persistSession:false}});
-    // Only cards uploaded during the last 60 minutes with explicit event
-    // display consent. The screen window does not shorten the seven-day
-    // QR download eligibility or delete any stored image.
-    const {data,error}=await admin.from('kora_player_registrations')
-      .select('card_storage_path,wall_share_token,card_uploaded_at')
-      .eq('event_screen_consent',true)
-      .eq('card_cloud_consent',true)
-      .not('card_storage_path','is',null)
-      .not('wall_share_token','is',null)
-      .gt('card_uploaded_at',new Date(Date.now()-60*60*1000).toISOString())
-      .order('card_uploaded_at',{ascending:false})
-      .range(offset,offset+PAGE_SIZE-1);
-    if(error)throw error;
-    const valid=(data||[]).filter(row=>typeof row.card_storage_path==='string'&&typeof row.wall_share_token==='string'&&typeof row.card_uploaded_at==='string');
-    const paths=valid.map(row=>row.card_storage_path as string);
-    const tokens=new Map(valid.map(row=>[row.card_storage_path,{token:row.wall_share_token,uploadedAt:row.card_uploaded_at}]));
+    // Both sources are opt-in, approved and fresh. Independent pagination
+    // prevents a busy booth from starving ball videos (and vice versa).
+    const since=new Date(Date.now()-60*60*1000).toISOString();
+    const [cardResult,videoResult]=await Promise.all([
+      admin.from('kora_player_registrations')
+        .select('card_storage_path,wall_share_token,card_uploaded_at')
+        .eq('event_screen_consent',true).eq('card_cloud_consent',true)
+        .not('card_storage_path','is',null).not('wall_share_token','is',null)
+        .gt('card_uploaded_at',since)
+        .order('card_uploaded_at',{ascending:false})
+        .range(offset,offset+PAGE_SIZE-1),
+      admin.from('kora_wall_ball_videos')
+        .select('storage_path,uploaded_at')
+        .eq('approved',true).eq('event_screen_consent',true)
+        .gt('uploaded_at',since)
+        .order('uploaded_at',{ascending:false})
+        .range(offset,offset+PAGE_SIZE-1),
+    ]);
+    if(cardResult.error)throw cardResult.error;
+    if(videoResult.error)throw videoResult.error;
+
+    const validCards=(cardResult.data||[]).filter(row=>
+      typeof row.card_storage_path==='string'&&
+      typeof row.wall_share_token==='string'&&
+      typeof row.card_uploaded_at==='string');
+    const cardTokens=new Map(validCards.map(row=>[
+      row.card_storage_path,{token:row.wall_share_token,uploadedAt:row.card_uploaded_at},
+    ]));
     const cards:{path:string;url:string;qrUrl:string;uploadedAt:string}[]=[];
-    if(paths.length){
+    if(validCards.length){
+      const paths=validCards.map(row=>row.card_storage_path);
       const {data:urls,error:signError}=await admin.storage.from('kora-cards')
         .createSignedUrls(paths,10*60);
       if(signError)throw signError;
       for(const item of urls||[]){
         if(item.signedUrl&&item.path){
-          const token=tokens.get(item.path);
-          if(token)cards.push({path:item.path,url:item.signedUrl,qrUrl:`${projectUrl}/functions/v1/kora-wall-download?t=${token.token}`,uploadedAt:token.uploadedAt});
+          const meta=cardTokens.get(item.path);
+          if(meta)cards.push({path:item.path,url:item.signedUrl,
+            qrUrl:`${projectUrl}/functions/v1/kora-wall-download?t=${meta.token}`,
+            uploadedAt:meta.uploadedAt});
         }
       }
     }
-    const nextOffset=(data?.length||0)===PAGE_SIZE?offset+PAGE_SIZE:null;
-    return responseJson(200,{cards,nextOffset},origin);
+    const validVideos=(videoResult.data||[]).filter(row=>
+      typeof row.storage_path==='string'&&
+      /^balls\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9._-]+\.mp4$/.test(row.storage_path)&&
+      typeof row.uploaded_at==='string');
+    const videoTimes=new Map(validVideos.map(row=>[row.storage_path,row.uploaded_at]));
+    const videos:{path:string;url:string;uploadedAt:string}[]=[];
+    if(validVideos.length){
+      const {data:urls,error:signError}=await admin.storage.from('kora-wall-media')
+        .createSignedUrls(validVideos.map(row=>row.storage_path),10*60);
+      if(signError)throw signError;
+      for(const item of urls||[]){
+        if(item.signedUrl&&item.path){
+          const uploadedAt=videoTimes.get(item.path);
+          if(uploadedAt)videos.push({path:item.path,url:item.signedUrl,uploadedAt});
+        }
+      }
+    }
+    const nextOffset=(cardResult.data?.length===PAGE_SIZE||
+      videoResult.data?.length===PAGE_SIZE)?offset+PAGE_SIZE:null;
+    return responseJson(200,{cards,videos,nextOffset},origin);
   }catch(error){
     console.error('KORA wall feed unavailable',error);
     return responseJson(503,{error:'Unable to load event cards. Check Supabase function logs'},origin);
