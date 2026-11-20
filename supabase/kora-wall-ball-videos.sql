@@ -10,6 +10,7 @@ on conflict (id) do update set
 create table if not exists public.kora_wall_ball_videos (
   id uuid primary key default gen_random_uuid(),
   storage_path text not null unique,
+  wall_share_token uuid not null unique default gen_random_uuid(),
   uploaded_at timestamptz not null default now(),
   approved boolean not null default false,
   event_screen_consent boolean not null default false,
@@ -18,6 +19,15 @@ create table if not exists public.kora_wall_ball_videos (
     and length(storage_path) <= 350
   )
 );
+
+-- Upgrade existing installations too; tokens are generated for old clips.
+alter table public.kora_wall_ball_videos
+  add column if not exists wall_share_token uuid default gen_random_uuid();
+update public.kora_wall_ball_videos set wall_share_token=gen_random_uuid()
+  where wall_share_token is null;
+alter table public.kora_wall_ball_videos alter column wall_share_token set not null;
+create unique index if not exists kora_wall_ball_videos_token_idx
+  on public.kora_wall_ball_videos(wall_share_token);
 
 create index if not exists kora_wall_ball_videos_recent_approved_idx
   on public.kora_wall_ball_videos (uploaded_at desc)
