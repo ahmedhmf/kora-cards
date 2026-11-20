@@ -44,7 +44,7 @@
               <video *ngIf="media.kind === 'video'" class="wall-ball-video" [src]="media.url"
                 [wallVisible]="!tile.flipped" muted loop playsinline preload="metadata" disablepictureinpicture
                 aria-label="KORA rendered football animation"></video>
-              <button *ngIf="media.kind === 'video'" class="wall-qr-side wall-video-qr" type="button" (click)="showQr(media)" title="Enlarge ball video download QR" aria-label="Enlarge ball video download QR">
+              <button *ngIf="media.kind === 'video' && media.qrUrl" class="wall-qr-side wall-video-qr" type="button" (click)="showQr(media)" title="Enlarge ball video download QR" aria-label="Enlarge ball video download QR">
                 <img [src]="qrImage(media)" alt="QR code to download this ball MP4">
               </button>
             </div>
@@ -61,7 +61,7 @@
               <video *ngIf="media.kind === 'video'" class="wall-ball-video" [src]="media.url"
                 [wallVisible]="tile.flipped" muted loop playsinline preload="metadata" disablepictureinpicture
                 aria-label="KORA rendered football animation"></video>
-              <button *ngIf="media.kind === 'video'" class="wall-qr-side wall-video-qr" type="button" (click)="showQr(media)" title="Enlarge ball video download QR" aria-label="Enlarge ball video download QR">
+              <button *ngIf="media.kind === 'video' && media.qrUrl" class="wall-qr-side wall-video-qr" type="button" (click)="showQr(media)" title="Enlarge ball video download QR" aria-label="Enlarge ball video download QR">
                 <img [src]="qrImage(media)" alt="QR code to download this ball MP4">
               </button>
             </div>
