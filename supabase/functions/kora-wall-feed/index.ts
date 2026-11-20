@@ -144,7 +144,7 @@ Deno.serve(async request=>{
     // Poster links are independent; a missing JPEG must never hide the MP4.
     const withPoster=videos.filter(item=>{
       const posterPath=videoMeta.get(item.path)?.posterPath;
-      return !!posterPath && posterPath===item.path.replace(/\\.mp4$/,'.jpg');
+      return !!posterPath && posterPath===item.path.replace(/\.mp4$/,'.jpg');
     });
     if(withPoster.length){
       const paths=withPoster.map(item=>videoMeta.get(item.path)!.posterPath!);
