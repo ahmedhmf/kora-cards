@@ -239,3 +239,7 @@
   background:#070909;
   pointer-events:none;
 }
+
+/* The MP4 QR stays above the playing video, matching the card QR placement. */
+.wall-video-qr{z-index:2;right:3%;bottom:2%}
+.wall-ball-video{display:block;width:100%;height:100%;object-fit:contain}
